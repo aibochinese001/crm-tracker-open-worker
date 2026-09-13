@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通知历史 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources}
+  <style>
+    /* 与其他 admin 页保持一致的小屏隐藏时钟规则 */
+    @media (max-width: 767px) {
+      #systemTimeDisplay { display: none !important; }
+    }
+    /* 通知历史专用样式 */
+    .row-success { background-color: #f0fdf4; }
+    .row-failed  { background-color: #fef2f2; }
+    html.dark .row-success { background-color: rgba(34,197,94,0.08) !important; }
+    html.dark .row-failed  { background-color: rgba(239,68,68,0.08) !important; }
+    .raw-pre { white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow: auto; }
+    /* 概览卡片 hover 与 admin 一致 */
+    .stat-card { background: #fff; border-radius: 12px; padding: 1rem 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+    html.dark .stat-card { background: var(--dark-bg-secondary); }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div id="toast-container"></div>
+
+  <!-- 与 admin / config / dashboard 完全一致的顶部导航 -->
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-xs text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单"
+            class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-indigo-600 bg-indigo-50">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- 页面头部（与客户列表的 h2 + subtitle 模式一致） -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h2 class="text-2xl font-bold text-gray-800">
+          <i class="fas fa-history text-indigo-600 mr-2"></i>通知历史
+        </h2>
+        <p class="text-sm text-gray-500 mt-1">
+          每条通知（成功/失败）都有记录，30 天 TTL；用于自助排查"为什么没收到通知"
+        </p>
+      </div>
+      <button id="reloadBtn" class="btn-primary text-white px-4 py-2 rounded-md text-sm font-medium self-start md:self-auto">
+        <i class="fas fa-sync mr-1"></i>刷新数据
+      </button>
+    </div>
+
+    <!-- 概览卡片 -->
+    <div id="summary" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="stat-card text-center">
+        <div class="text-xs text-gray-500 uppercase font-medium tracking-wide">总记录</div>
+        <div id="metricTotal" class="text-3xl font-bold text-gray-800 mt-1">-</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-xs text-gray-500 uppercase font-medium tracking-wide">成功</div>
+        <div id="metricSuccess" class="text-3xl font-bold text-green-600 mt-1">-</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-xs text-gray-500 uppercase font-medium tracking-wide">失败</div>
+        <div id="metricFailed" class="text-3xl font-bold text-red-600 mt-1">-</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-xs text-gray-500 uppercase font-medium tracking-wide">最近一次发送</div>
+        <div id="metricLatest" class="text-sm font-semibold text-gray-700 mt-2">-</div>
+      </div>
+    </div>
+
+    <!-- 筛选条 -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-3">
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">客户</label>
+          <select id="filterSubId" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <option value="">全部客户</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">渠道</label>
+          <select id="filterChannel" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <option value="">全部</option>
+            <option value="telegram">Telegram</option>
+            <option value="notifyx">NotifyX</option>
+            <option value="webhook">Webhook</option>
+            <option value="wechatbot">企业微信</option>
+            <option value="email">邮件</option>
+            <option value="bark">Bark</option>
+            <option value="gotify">Gotify</option>
+            <option value="serverchan">Server酱</option>
+            <option value="pushplus">PushPlus</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">状态</label>
+          <select id="filterStatus" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <option value="">全部</option>
+            <option value="success">成功</option>
+            <option value="failed">失败</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">时间范围</label>
+          <select id="filterSince" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <option value="24">最近 24 小时</option>
+            <option value="72" selected>最近 3 天</option>
+            <option value="168">最近 7 天</option>
+            <option value="720">最近 30 天</option>
+            <option value="">不限</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-600 mb-1">条数上限</label>
+          <select id="filterLimit" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="200">200</option>
+            <option value="500">500</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 调度日志快速预览（与客户列表"批量操作"区一致的折叠风格） -->
+    <details class="bg-white rounded-lg shadow-md mb-6">
+      <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">
+        <i class="fas fa-clock text-indigo-600 mr-2"></i>最近 10 次定时任务执行
+        <span class="text-xs text-gray-500 ml-2">点击展开查看链路明细</span>
+      </summary>
+      <div id="schedLogs" class="px-4 pb-4 mt-2 space-y-2 text-xs"></div>
+    </details>
+
+    <!-- 主表格 -->
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">时间</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">客户</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">规则</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">渠道</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">状态</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">详情</th>
+            </tr>
+          </thead>
+          <tbody id="logsBody" class="divide-y divide-gray-200 bg-white">
+            <tr><td colspan="6" class="px-4 py-12 text-center text-gray-400">加载中…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/lib/api-client.js"></script>
+  <script>
+    // 角色感知导航：普通用户隐藏「管理后台」，显示「个人中心」（与 /admin 一致）
+    (async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    })();
+    /**
+     * 通知历史页脚本
+     *
+     * 数据源：
+     *   GET /api/notification-logs?subId=&channel=&status=&since=&limit=
+     *   GET /api/scheduler-logs?limit=10
+     *   GET /api/config （取 TIMEZONE 用于本地时间显示）
+     *   GET /api/subscriptions （映射 subId → 客户名）
+     */
+    let userTz = 'UTC';
+    let subNameMap = {};
+
+    function fmtTime(iso) {
+      try {
+        return new Date(iso).toLocaleString('zh-CN', { timeZone: userTz });
+      } catch {
+        return iso;
+      }
+    }
+
+    function ruleLabel(ruleId) {
+      if (!ruleId || ruleId === 'none' || ruleId === 'null') {
+        return '<span class="text-gray-400">手动/默认</span>';
+      }
+      return '<span class="text-xs font-mono bg-gray-100 px-1.5 py-0.5 rounded">' + ruleId.slice(0, 8) + '</span>';
+    }
+
+    function statusBadge(s) {
+      if (s === 'success') return '<span class="px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">✓ 成功</span>';
+      if (s === 'failed')  return '<span class="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-medium">✗ 失败</span>';
+      return '<span class="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-medium">' + s + '</span>';
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function buildDetail(log) {
+      const parts = [];
+      if (log.title) parts.push('<div><b>标题：</b>' + escapeHtml(log.title) + '</div>');
+      if (log.error) parts.push('<div class="text-red-600 mt-1"><b>错误：</b>' + escapeHtml(log.error) + '</div>');
+      if (log.raw) {
+        const raw = typeof log.raw === 'string' ? log.raw : JSON.stringify(log.raw, null, 2);
+        parts.push('<details class="mt-1"><summary class="cursor-pointer text-xs text-gray-500 hover:text-gray-700">展开原始返回</summary><pre class="raw-pre text-xs bg-gray-50 p-2 mt-1 rounded">' + escapeHtml(raw) + '</pre></details>');
+      }
+      if (log.content) {
+        const trimmed = String(log.content).slice(0, 300) + (log.content.length > 300 ? '…' : '');
+        parts.push('<details class="mt-1"><summary class="cursor-pointer text-xs text-gray-500 hover:text-gray-700">展开通知正文</summary><pre class="raw-pre text-xs bg-gray-50 p-2 mt-1 rounded">' + escapeHtml(trimmed) + '</pre></details>');
+      }
+      return parts.length ? parts.join('') : '<span class="text-gray-400">无</span>';
+    }
+
+    async function loadConfig() {
+      try {
+        const res = await fetch('/api/config', { credentials: 'same-origin' });
+        const cfg = await res.json();
+        if (cfg && cfg.TIMEZONE) userTz = cfg.TIMEZONE;
+      } catch (e) { /* ignore */ }
+    }
+
+    async function loadSubs() {
+      try {
+        const res = await fetch('/api/subscriptions', { credentials: 'same-origin' });
+        const list = await res.json();
+        const select = document.getElementById('filterSubId');
+        if (Array.isArray(list)) {
+          for (const s of list) {
+            subNameMap[s.id] = s.name;
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = s.name;
+            select.appendChild(opt);
+          }
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    async function loadSchedLogs() {
+      const target = document.getElementById('schedLogs');
+      target.innerHTML = '<div class="text-gray-400 px-2 py-4">加载中…</div>';
+      try {
+        const data = await ApiClient.get('/api/scheduler-logs', { limit: 10 });
+        const logs = (data && data.logs) || [];
+        if (logs.length === 0) {
+          target.innerHTML = '<div class="text-gray-400 px-2 py-4">暂无调度记录</div>';
+          return;
+        }
+        target.innerHTML = logs.map(l => {
+          const color = l.status === 'ok' ? 'text-green-600' : (l.status === 'skipped' ? 'text-yellow-600' : 'text-red-600');
+          const statusLabel = l.status === 'ok' ? '✓ 成功' : (l.status === 'skipped' ? '⊘ 跳过' : '✗ 错误');
+          return '<div class="flex flex-wrap items-center gap-3 border-b border-gray-100 py-1.5 last:border-0">'
+            + '<span class="text-gray-500 font-mono">' + escapeHtml(fmtTime(l.startedAt)) + '</span>'
+            + '<span class="' + color + ' font-medium">' + statusLabel + '</span>'
+            + '<span class="text-gray-700">' + escapeHtml(l.timezone) + ' · 本地小时 <b>' + escapeHtml(l.currentHour) + '</b> · 在窗口=' + (l.inWindow ? '是' : '否') + '</span>'
+            + '<span class="text-gray-700">命中 <b>' + l.matchedCount + '</b> / 去重 <b>' + l.dedupedCount + '</b> / 发送 <b>' + l.sentCount + '</b> / 续费 <b>' + l.autoRenewedCount + '</b></span>'
+            + (l.reason ? '<span class="text-gray-500 italic">' + escapeHtml(l.reason) + '</span>' : '')
+            + '</div>';
+        }).join('');
+      } catch (err) {
+        target.innerHTML = '<div class="text-red-500 px-2 py-4">加载失败：' + escapeHtml(err.message) + '</div>';
+      }
+    }
+
+    async function loadLogs() {
+      const subId = document.getElementById('filterSubId').value.trim();
+      const channel = document.getElementById('filterChannel').value;
+      const status = document.getElementById('filterStatus').value;
+      const sinceHours = document.getElementById('filterSince').value;
+      const limit = Number(document.getElementById('filterLimit').value) || 100;
+      const params = { limit };
+      if (subId) params.subId = subId;
+      if (channel) params.channel = channel;
+      if (status) params.status = status;
+      if (sinceHours) {
+        params.since = new Date(Date.now() - Number(sinceHours) * 3600 * 1000).toISOString();
+      }
+
+      const tbody = document.getElementById('logsBody');
+      tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-400">加载中…</td></tr>';
+      try {
+        const data = await ApiClient.get('/api/notification-logs', params);
+        const logs = (data && data.logs) || [];
+
+        document.getElementById('metricTotal').textContent = logs.length;
+        document.getElementById('metricSuccess').textContent = logs.filter(l => l.status === 'success').length;
+        document.getElementById('metricFailed').textContent = logs.filter(l => l.status === 'failed').length;
+        document.getElementById('metricLatest').textContent = logs.length ? fmtTime(logs[0].timestamp) : '-';
+
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-400">没有匹配的记录</td></tr>';
+          return;
+        }
+        tbody.innerHTML = logs.map(l => {
+          const subName = subNameMap[l.subId] || l.subId;
+          const rowClass = l.status === 'failed' ? 'row-failed' : 'row-success';
+          return '<tr class="' + rowClass + ' hover:bg-opacity-75">'
+            + '<td class="px-4 py-3 align-top whitespace-nowrap font-mono text-xs">' + escapeHtml(fmtTime(l.timestamp)) + '</td>'
+            + '<td class="px-4 py-3 align-top">' + escapeHtml(subName) + '</td>'
+            + '<td class="px-4 py-3 align-top">' + ruleLabel(l.ruleId) + '</td>'
+            + '<td class="px-4 py-3 align-top font-medium">' + escapeHtml(l.channel) + '</td>'
+            + '<td class="px-4 py-3 align-top">' + statusBadge(l.status) + '</td>'
+            + '<td class="px-4 py-3 align-top text-xs">' + buildDetail(l) + '</td>'
+            + '</tr>';
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-red-500">加载失败：' + escapeHtml(err.message) + '</td></tr>';
+      }
+    }
+
+    // ─── 事件绑定 ───
+    document.getElementById('reloadBtn').addEventListener('click', () => {
+      loadLogs();
+      loadSchedLogs();
+    });
+    ['filterSubId', 'filterChannel', 'filterStatus', 'filterSince', 'filterLimit'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', loadLogs);
+    });
+
+    // ─── 实时时钟（与其他 admin 页一致的实现）───
+    function formatTimezoneDisplay(tz) {
+      try {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz, hour12: false,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        const parts = dtf.formatToParts(now);
+        const get = (type) => Number(parts.find(x => x.type === type).value);
+        const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+        const offset = Math.round((target - now.getTime()) / (1000 * 60 * 60));
+        const offsetStr = offset >= 0 ? '+' + offset : offset;
+        const names = {
+          'UTC': '世界标准时间',
+          'Asia/Shanghai': '中国标准时间',
+          'Asia/Hong_Kong': '香港时间',
+          'Asia/Taipei': '台北时间',
+          'Asia/Singapore': '新加坡时间',
+          'Asia/Tokyo': '日本时间',
+          'Asia/Seoul': '韩国时间',
+          'America/New_York': '美国东部时间',
+          'America/Los_Angeles': '美国太平洋时间',
+          'America/Chicago': '美国中部时间',
+          'America/Denver': '美国山地时间',
+          'Europe/London': '英国时间',
+          'Europe/Paris': '巴黎时间',
+          'Europe/Berlin': '柏林时间',
+          'Europe/Moscow': '莫斯科时间',
+          'Australia/Sydney': '悉尼时间',
+          'Australia/Melbourne': '墨尔本时间',
+          'Pacific/Auckland': '奥克兰时间'
+        };
+        const cn = names[tz] || tz;
+        return cn + ' (UTC' + offsetStr + ')';
+      } catch { return tz; }
+    }
+
+    function startClock() {
+      const updateClock = () => {
+        try {
+          const now = new Date();
+          const timeStr = now.toLocaleString('zh-CN', {
+            timeZone: userTz,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+          });
+          const tzStr = formatTimezoneDisplay(userTz);
+          const el = document.getElementById('systemTimeDisplay');
+          const mob = document.getElementById('mobileTimeDisplay');
+          if (el) el.textContent = timeStr + '  ' + tzStr;
+          if (mob) mob.textContent = timeStr + ' ' + tzStr;
+        } catch { /* ignore */ }
+      };
+      updateClock();
+      setInterval(updateClock, 1000);
+    }
+
+    // ─── 移动端菜单（与其他 admin 页一致的实现）───
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (!btn || !menu) return;
+      const sync = () => {
+        const icon = btn.querySelector('i');
+        const isHidden = menu.classList.contains('hidden');
+        btn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+        if (icon) {
+          icon.classList.toggle('fa-bars', isHidden);
+          icon.classList.toggle('fa-times', !isHidden);
+        }
+      };
+      btn.addEventListener('click', () => { menu.classList.toggle('hidden'); sync(); });
+      menu.querySelectorAll('a').forEach(link =>
+        link.addEventListener('click', () => { menu.classList.add('hidden'); sync(); })
+      );
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (btn.contains(e.target) || menu.contains(e.target)) return;
+        menu.classList.add('hidden'); sync();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
+          menu.classList.add('hidden'); sync();
+        }
+      });
+      sync();
+    }
+
+    // ─── 启动 ───
+    (async function init() {
+      setupMobileMenu();
+      await loadConfig();
+      startClock();
+      await loadSubs();
+      await Promise.all([loadLogs(), loadSchedLogs()]);
+    })();
+  </script>
+</body>
+</html>

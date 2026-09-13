@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提醒设置 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources}
+  <style>
+    body { background: #f3f4f6; }
+    html.dark body { background: #111827; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    html.dark .card { background: #1f2937; }
+    html.dark .text-gray-800 { color: #f3f4f6; }
+    html.dark .text-gray-600, html.dark .text-gray-700 { color: #cbd5e1; }
+    .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background: #667eea; color: #fff; }
+    .btn-primary:hover { background: #5a6fd6; }
+    .inp { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+    .inp:focus { outline: none; border-color: #667eea; }
+    .test-btn { padding: 0.4rem 0.75rem; border-radius: 0.5rem; font-size: 0.8rem; cursor: pointer; background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
+    .test-btn:hover { background: #e0e7ff; }
+    .test-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- 统一顶部导航（与 /admin 客户列表一致） -->
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-xs text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单" class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-indigo-600 bg-indigo-50">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+    <div class="card p-6">
+      <div class="text-sm text-gray-600 mb-4" style="border-left:3px solid #667eea;padding-left:0.75rem">
+        这里配置<b>你自己的</b>客户到期提醒渠道，只对你的客户生效，与其他用户互相独立。
+        系统每小时检查一次，在下方设定的时刻向你配置的渠道发送提醒。
+      </div>
+
+      <form id="notifyForm" class="space-y-5">
+        <!-- 启用渠道 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            启用渠道（可多选）
+            <a href="https://opcgrow.org/article.php?id=133" target="_blank" rel="noopener"
+              class="ml-2 text-xs font-normal" style="color:#667eea">
+              <i class="fas fa-book-open mr-1"></i>Telegram 配置教程
+            </a>
+          </label>
+          <div class="flex flex-wrap gap-4">
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="notifier" value="telegram" class="form-checkbox h-4 w-4">
+              <i class="fab fa-telegram text-blue-500"></i>Telegram
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="notifier" value="bark" class="form-checkbox h-4 w-4">
+              <i class="fas fa-bell text-amber-500"></i>Bark (iOS)
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="notifier" value="wechatbot" class="form-checkbox h-4 w-4">
+              <i class="fas fa-comment-dots text-blue-600"></i>企业微信机器人
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="notifier" value="email" class="form-checkbox h-4 w-4">
+              <i class="fas fa-envelope text-red-500"></i>邮件通知
+            </label>
+            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" name="notifier" value="webhook" class="form-checkbox h-4 w-4">
+              <i class="fas fa-plug text-purple-500"></i>Webhook
+            </label>
+          </div>
+        </div>
+
+        <!-- Telegram -->
+        <div id="secTelegram" class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fab fa-telegram text-blue-500 mr-1"></i>Telegram</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Bot Token</label>
+              <input type="text" id="tgToken" class="inp" placeholder="123456:ABC-DEF...">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Chat ID</label>
+              <input type="text" id="tgChatId" class="inp" placeholder="你的用户/群组 Chat ID">
+            </div>
+          </div>
+        </div>
+
+        <!-- Bark -->
+        <div id="secBark" class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-bell text-amber-500 mr-1"></i>Bark</h3>
+          <label class="block text-sm text-gray-600 mb-1">Device Key</label>
+          <input type="text" id="barkKey" class="inp" placeholder="Bark App 中的推送 Key">
+        </div>
+
+        <!-- 企业微信机器人 -->
+        <div id="secWechatbot" class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-comment-dots text-blue-600 mr-1"></i>企业微信机器人</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">机器人 Webhook 地址</label>
+              <input type="text" id="wechatbotWebhook" class="inp" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">消息格式</label>
+              <select id="wechatbotMsgType" class="inp">
+                <option value="text">纯文本 (text)</option>
+                <option value="markdown">Markdown</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 邮件通知 -->
+        <div id="secEmail" class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-envelope text-red-500 mr-1"></i>邮件通知（Resend）</h3>
+          <div class="space-y-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">Resend API Key</label>
+              <input type="password" id="resendKey" class="inp" placeholder="re_...">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">发件地址（需在 Resend 已验证）</label>
+              <input type="text" id="emailFrom" class="inp" placeholder="notify@yourdomain.com">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">收件邮箱</label>
+              <input type="text" id="emailTo" class="inp" placeholder="you@example.com（多个用逗号分隔）">
+            </div>
+          </div>
+        </div>
+
+        <!-- Webhook -->
+        <div id="secWebhook" class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-plug text-purple-500 mr-1"></i>Webhook</h3>
+          <label class="block text-sm text-gray-600 mb-1">Webhook URL</label>
+          <input type="text" id="webhookUrl" class="inp" placeholder="https://...（POST JSON）">
+        </div>
+
+        <!-- 时区与时段 -->
+        <div class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-clock mr-1" style="color:#667eea"></i>提醒时段</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">时区</label>
+              <select id="timezone" class="inp">
+                <option value="Asia/Shanghai">北京时间 (Asia/Shanghai)</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">美东 (America/New_York)</option>
+                <option value="Europe/London">伦敦 (Europe/London)</option>
+                <option value="Asia/Tokyo">东京 (Asia/Tokyo)</option>
+                <option value="Asia/Singapore">新加坡 (Asia/Singapore)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">提醒时刻（小时，0-23，逗号分隔）</label>
+              <input type="text" id="notifyHours" class="inp" placeholder="如 08,20（每天 8 点和 20 点各查一次）">
+            </div>
+          </div>
+        </div>
+
+        <!-- 测试通知 -->
+        <div class="border-t pt-4" style="border-color:#f3f4f6">
+          <h3 class="text-sm font-bold text-gray-800 mb-3"><i class="fas fa-vial mr-1" style="color:#667eea"></i>测试通知</h3>
+          <div class="text-sm text-gray-600 mb-3">选择渠道，用当前表单里的配置（含未保存的修改）发送一条测试消息。</div>
+          <div class="flex flex-wrap gap-2">
+            <button type="button" onclick="testChannel('telegram')" class="test-btn" data-ch="telegram"><i class="fab fa-telegram mr-1"></i>Telegram</button>
+            <button type="button" onclick="testChannel('bark')" class="test-btn" data-ch="bark"><i class="fas fa-bell mr-1"></i>Bark</button>
+            <button type="button" onclick="testChannel('wechatbot')" class="test-btn" data-ch="wechatbot"><i class="fas fa-comment-dots mr-1"></i>企业微信</button>
+            <button type="button" onclick="testChannel('email')" class="test-btn" data-ch="email"><i class="fas fa-envelope mr-1"></i>邮件</button>
+            <button type="button" onclick="testChannel('webhook')" class="test-btn" data-ch="webhook"><i class="fas fa-plug mr-1"></i>Webhook</button>
+          </div>
+          <div id="testMsg" class="text-sm mt-3" role="alert"></div>
+        </div>
+
+        <div id="msg" class="text-sm" role="alert"></div>
+        <button type="submit" class="btn btn-primary w-full md:w-auto"><i class="fas fa-save mr-2"></i>保存提醒设置</button>
+      </form>
+    </div>
+
+    <!-- 邮件发送通道（QQ SMTP，发客户专属邮件用） -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-envelope-open-text mr-2" style="color:#12b76a"></i>邮件发送通道（QQ 邮箱 SMTP）</h2>
+        <a href="https://opcgrow.org/article.php?id=136" target="_blank" rel="noopener" class="text-xs font-normal" style="color:#667eea">
+          <i class="fas fa-book-open mr-1"></i>QQ 邮箱 SMTP 教程
+        </a>
+      </div>
+      <div class="text-sm text-gray-600 mb-4" style="border-left:3px solid #12b76a;padding-left:0.75rem">
+        配置你自己的 QQ 邮箱作为发件通道，用于给<b>客户</b>发送专属提醒邮件（客户填了邮箱才会发）。
+        QQ 邮箱 → 设置 → 账户 → 开启 SMTP 服务并获取<b>授权码</b>（不是 QQ 密码）。
+      </div>
+      <div class="space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">QQ 邮箱地址（发件邮箱）</label>
+            <input type="text" id="smtpEmail" class="inp" placeholder="yourname@qq.com">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">SMTP 授权码</label>
+            <input type="password" id="smtpAuthCode" class="inp" placeholder="已配置则留空保持不变">
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">发件人名称（客户看到的）</label>
+            <input type="text" id="smtpFromName" class="inp" placeholder="如：Aibo 客户服务">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">BCC 归档邮箱（可选，每封密送一份）</label>
+            <input type="text" id="emailBcc" class="inp" placeholder="留空不抄送">
+          </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button type="button" onclick="saveSmtp()" class="btn btn-primary"><i class="fas fa-save mr-1"></i>保存通道配置</button>
+          <input type="text" id="smtpTestTo" class="inp" style="width:220px" placeholder="测试收件邮箱">
+          <button type="button" onclick="testSmtp()" class="test-btn"><i class="fas fa-vial mr-1"></i>发送测试邮件</button>
+        </div>
+        <div id="smtpMsg" class="text-sm" role="alert"></div>
+      </div>
+    </div>
+
+    <!-- 绑定自己的邮箱（接收客户邮件抄送） -->
+    <div class="card p-6">
+      <h2 class="font-bold text-gray-800 mb-2"><i class="fas fa-at mr-2" style="color:#667eea"></i>绑定我的邮箱</h2>
+      <div class="text-sm text-gray-600 mb-3">绑定后，发给客户的每封专属提醒邮件都会<b>抄送一份给你</b>，方便掌握提醒触达情况。</div>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="text" id="boundEmail" class="inp" style="width:260px" placeholder="yourname@example.com">
+        <button type="button" onclick="saveBoundEmail()" class="btn btn-primary">保存绑定</button>
+        <span id="boundMsg" class="text-sm" role="alert"></span>
+      </div>
+    </div>
+
+    <!-- 邮件模板库 -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-2">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-file-lines mr-2" style="color:#f59e0b"></i>邮件模板</h2>
+        <button type="button" onclick="showTplEditor()" class="btn btn-primary"><i class="fas fa-plus mr-1"></i>新建模板</button>
+      </div>
+      <div class="text-sm text-gray-600 mb-4">给客户发送的专属提醒邮件使用这些模板渲染；添加客户时可拉取默认模板。<b>模板只对你自己的客户生效。</b></div>
+      <div id="tplList" class="space-y-2 mb-4">加载中...</div>
+
+      <!-- 模板编辑器 -->
+      <div id="tplEditor" style="display:none;border:1px solid #e5e7eb;border-radius:0.75rem;padding:16px;background:#fafafa">
+        <h3 class="text-sm font-bold text-gray-800 mb-3" id="tplEditorTitle">新建模板</h3>
+        <input type="hidden" id="tplId">
+        <div class="space-y-3">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">模板名称</label>
+              <input type="text" id="tplName" class="inp" placeholder="如：会员到期提醒">
+            </div>
+            <div>
+              <label class="block text-sm text-gray-600 mb-1">
+                <label class="inline-flex items-center gap-2">
+                  <input type="checkbox" id="tplIsDefault" class="form-checkbox h-4 w-4">
+                  <span>设为默认模板（添加客户时自动拉取）</span>
+                </label>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">邮件主题（支持变量）</label>
+            <input type="text" id="tplSubject" class="inp" placeholder="{{客户名}} 您的会员即将到期">
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">
+              正文
+              <span class="ml-2 text-xs">
+                <a href="javascript:void(0)" onclick="insertVar('客户名')" style="color:#667eea">+客户名</a>
+                <a href="javascript:void(0)" onclick="insertVar('到期日期')" style="color:#667eea">+到期日期</a>
+                <a href="javascript:void(0)" onclick="insertVar('剩余天数')" style="color:#667eea">+剩余天数</a>
+                <a href="javascript:void(0)" onclick="insertVar('金额')" style="color:#667eea">+金额</a>
+                <a href="javascript:void(0)" onclick="insertVar('分类')" style="color:#667eea">+分类</a>
+              </span>
+            </label>
+            <textarea id="tplBody" rows="7" class="inp" style="font-family:monospace" placeholder="尊敬的 {{客户名}}：&#10;&#10;您的会员将于 {{到期日期}} 到期，剩余 {{剩余天数}} 天。"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">预览（示例数据渲染）</label>
+            <div id="tplPreview" class="inp" style="min-height:80px;background:#f9fafb;color:#555"></div>
+          </div>
+          <div class="flex flex-wrap gap-2 justify-end">
+            <button type="button" onclick="closeTplEditor()" class="btn" style="background:#e5e7eb">取消</button>
+            <button type="button" onclick="saveTpl()" class="btn btn-primary"><i class="fas fa-save mr-1"></i>保存模板</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  // 统一顶部导航：系统时间 + 移动端菜单 + 角色感知（与 /admin 一致）
+  (function () {
+    let navTz = 'Asia/Shanghai';
+    function fmtTz(tz) {
+      try {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const parts = dtf.formatToParts(now);
+        const get = (t) => Number(parts.find((x) => x.type === t).value);
+        const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+        const offset = Math.round((target - now.getTime()) / 3600000);
+        const names = { 'Asia/Shanghai': '北京时间', 'Asia/Tokyo': '东京时间', 'Asia/Hong_Kong': '香港时间', 'Asia/Taipei': '台北时间' };
+        return (names[tz] || tz) + ' (UTC' + (offset >= 0 ? '+' + offset : offset) + ')';
+      } catch (e) { return tz; }
+    }
+    function startClock() {
+      const update = () => {
+        try {
+          const now = new Date();
+          const s = now.toLocaleString('zh-CN', { timeZone: navTz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const tz = fmtTz(navTz);
+          const el = document.getElementById('systemTimeDisplay');
+          const mob = document.getElementById('mobileTimeDisplay');
+          if (el) el.textContent = s + '  ' + tz;
+          if (mob) mob.textContent = s + ' ' + tz;
+        } catch (e) { /* ignore */ }
+      };
+      update();
+      setInterval(update, 1000);
+    }
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (!btn || !menu) return;
+      const sync = () => {
+        const icon = btn.querySelector('i');
+        const hidden = menu.classList.contains('hidden');
+        btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        if (icon) { icon.classList.toggle('fa-bars', hidden); icon.classList.toggle('fa-times', !hidden); }
+      };
+      btn.addEventListener('click', () => { menu.classList.toggle('hidden'); sync(); });
+      menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => { menu.classList.add('hidden'); sync(); }));
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (btn.contains(e.target) || menu.contains(e.target)) return;
+        menu.classList.add('hidden'); sync();
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); sync(); } });
+      sync();
+    }
+    async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    }
+    (async function init() {
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        if (cfg && cfg.TIMEZONE) navTz = cfg.TIMEZONE;
+      } catch (e) { /* 保持默认时区 */ }
+      startClock();
+      setupMobileMenu();
+      applyRoleNav();
+    })();
+  })();
+  </script>
+
+  <script>
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      return res.json();
+    }
+
+    function syncSections() {
+      const checked = [...document.querySelectorAll('input[name="notifier"]:checked')].map(x => x.value);
+      document.getElementById('secTelegram').style.display = checked.includes('telegram') ? '' : 'none';
+      document.getElementById('secBark').style.display = checked.includes('bark') ? '' : 'none';
+      document.getElementById('secWechatbot').style.display = checked.includes('wechatbot') ? '' : 'none';
+      document.getElementById('secEmail').style.display = checked.includes('email') ? '' : 'none';
+      document.getElementById('secWebhook').style.display = checked.includes('webhook') ? '' : 'none';
+    }
+    document.querySelectorAll('input[name="notifier"]').forEach(cb => cb.addEventListener('change', syncSections));
+
+    async function load() {
+      const r = await api('/api/my/notify-config');
+      const cfg = (r && r.data) || {};
+      (cfg.ENABLED_NOTIFIERS || []).forEach(n => {
+        const cb = document.querySelector(`input[name="notifier"][value="${n}"]`);
+        if (cb) cb.checked = true;
+      });
+      document.getElementById('tgToken').value = cfg.TG_BOT_TOKEN || '';
+      document.getElementById('tgChatId').value = cfg.TG_CHAT_ID || '';
+      document.getElementById('barkKey').value = cfg.BARK_DEVICE_KEY || '';
+      document.getElementById('wechatbotWebhook').value = cfg.WECHATBOT_WEBHOOK || '';
+      document.getElementById('wechatbotMsgType').value = cfg.WECHATBOT_MSG_TYPE || 'text';
+      document.getElementById('resendKey').value = cfg.RESEND_API_KEY || '';
+      document.getElementById('emailFrom').value = cfg.EMAIL_FROM || '';
+      document.getElementById('emailTo').value = cfg.EMAIL_TO || '';
+      document.getElementById('webhookUrl').value = cfg.WEBHOOK_URL || '';
+      document.getElementById('timezone').value = cfg.TIMEZONE || 'Asia/Shanghai';
+      document.getElementById('notifyHours').value = (cfg.NOTIFICATION_HOURS || ['08', '20']).join(',');
+      syncSections();
+    }
+
+    document.getElementById('notifyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('msg');
+      const enabled = [...document.querySelectorAll('input[name="notifier"]:checked')].map(x => x.value);
+      const hoursRaw = document.getElementById('notifyHours').value.trim();
+      const hours = hoursRaw ? hoursRaw.split(/[,，\s]+/).filter(Boolean) : ['08', '20'];
+      const invalid = hours.find(h => h !== '*' && !(Number(h) >= 0 && Number(h) <= 23));
+      if (invalid) {
+        msg.style.color = '#dc2626';
+        msg.textContent = `提醒时刻「${invalid}」无效，请填 0-23 的小时数（或 * 表示每小时）`;
+        return;
+      }
+      for (const ch of enabled) {
+        if (ch === 'telegram' && !document.getElementById('tgToken').value.trim()) {
+          msg.style.color = '#dc2626'; msg.textContent = '启用了 Telegram 但未填 Bot Token'; return;
+        }
+        if (ch === 'bark' && !document.getElementById('barkKey').value.trim()) {
+          msg.style.color = '#dc2626'; msg.textContent = '启用了 Bark 但未填 Device Key'; return;
+        }
+        if (ch === 'wechatbot' && !document.getElementById('wechatbotWebhook').value.trim()) {
+          msg.style.color = '#dc2626'; msg.textContent = '启用了企业微信机器人但未填 Webhook 地址'; return;
+        }
+        if (ch === 'email') {
+          const rk = document.getElementById('resendKey').value.trim();
+          const ef = document.getElementById('emailFrom').value.trim();
+          const et = document.getElementById('emailTo').value.trim();
+          if (!rk || !ef || !et) {
+            msg.style.color = '#dc2626'; msg.textContent = '启用了邮件通知但 Resend Key / 发件地址 / 收件邮箱未填全'; return;
+          }
+        }
+        if (ch === 'webhook' && !document.getElementById('webhookUrl').value.trim()) {
+          msg.style.color = '#dc2626'; msg.textContent = '启用了 Webhook 但未填 URL'; return;
+        }
+      }
+      const r = await api('/api/my/notify-config', {
+        method: 'POST',
+        body: JSON.stringify({
+          ENABLED_NOTIFIERS: enabled,
+          TG_BOT_TOKEN: document.getElementById('tgToken').value.trim(),
+          TG_CHAT_ID: document.getElementById('tgChatId').value.trim(),
+          BARK_DEVICE_KEY: document.getElementById('barkKey').value.trim(),
+          WECHATBOT_WEBHOOK: document.getElementById('wechatbotWebhook').value.trim(),
+          WECHATBOT_MSG_TYPE: document.getElementById('wechatbotMsgType').value,
+          RESEND_API_KEY: document.getElementById('resendKey').value.trim(),
+          EMAIL_FROM: document.getElementById('emailFrom').value.trim(),
+          EMAIL_TO: document.getElementById('emailTo').value.trim(),
+          WEBHOOK_URL: document.getElementById('webhookUrl').value.trim(),
+          TIMEZONE: document.getElementById('timezone').value,
+          NOTIFICATION_HOURS: hours
+        })
+      });
+      if (r.success) {
+        msg.style.color = '#059669';
+        msg.textContent = '✓ ' + (r.message || '已保存');
+      } else {
+        msg.style.color = '#dc2626';
+        msg.textContent = r.message || '保存失败';
+      }
+    });
+
+    load();
+
+    /* ===== 邮件通道 / 绑定邮箱 / 模板库 ===== */
+
+    async function loadSmtp() {
+      const r = await api('/api/my/notify-config');
+      const cfg = (r && r.data) || {};
+      document.getElementById('smtpEmail').value = cfg.SMTP_EMAIL || '';
+      document.getElementById('smtpFromName').value = cfg.SMTP_FROM_NAME || '';
+      document.getElementById('emailBcc').value = cfg.EMAIL_BCC || '';
+      // 授权码不回显，仅显示已配置状态
+      document.getElementById('smtpAuthCode').placeholder = cfg.SMTP_AUTH_CODE ? '已配置，留空保持不变' : '尚未配置';
+      // 绑定邮箱
+      const me = await api('/api/me');
+      document.getElementById('boundEmail').value = (me.data && me.data.boundEmail) || '';
+    }
+
+    async function saveSmtp() {
+      const msg = document.getElementById('smtpMsg');
+      const email = document.getElementById('smtpEmail').value.trim();
+      const authCode = document.getElementById('smtpAuthCode').value.trim();
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        msg.style.color = '#dc2626'; msg.textContent = '邮箱格式不正确'; return;
+      }
+      if (!email || (!authCode && !document.getElementById('smtpAuthCode').placeholder.includes('已配置'))) {
+        msg.style.color = '#dc2626'; msg.textContent = '请填写邮箱和授权码'; return;
+      }
+      // 合并保存：notify-config 全量字段需保留已有值，这里只 PATCH SMTP 相关（服务端白名单按字段覆盖）
+      const cfgRes = await api('/api/my/notify-config');
+      const existing = (cfgRes && cfgRes.data) || {};
+      const body = { ...existing, SMTP_EMAIL: email, SMTP_FROM_NAME: document.getElementById('smtpFromName').value.trim(), EMAIL_BCC: document.getElementById('emailBcc').value.trim() };
+      if (authCode) body.SMTP_AUTH_CODE = authCode;
+      const r = await api('/api/my/notify-config', { method: 'POST', body: JSON.stringify(body) });
+      if (r.success) {
+        msg.style.color = '#059669'; msg.textContent = '✓ 通道配置已保存';
+        loadSmtp();
+      } else {
+        msg.style.color = '#dc2626'; msg.textContent = r.message || '保存失败';
+      }
+    }
+
+    async function testSmtp() {
+      const to = document.getElementById('smtpTestTo').value.trim();
+      const msg = document.getElementById('smtpMsg');
+      if (!to) { msg.style.color = '#dc2626'; msg.textContent = '请填测试收件邮箱'; return; }
+      msg.style.color = ''; msg.textContent = '发送中...';
+      const r = await api('/api/my/smtp-test', { method: 'POST', body: JSON.stringify({ to }) });
+      if (r.success) { msg.style.color = '#059669'; msg.textContent = '✓ ' + r.message; }
+      else { msg.style.color = '#dc2626'; msg.textContent = r.message || '发送失败'; }
+    }
+
+    async function saveBoundEmail() {
+      const msg = document.getElementById('boundMsg');
+      const r = await api('/api/my/bind-email', {
+        method: 'POST',
+        body: JSON.stringify({ email: document.getElementById('boundEmail').value.trim() })
+      });
+      if (r.success) { msg.style.color = '#059669'; msg.textContent = '✓ ' + r.message; }
+      else { msg.style.color = '#dc2626'; msg.textContent = r.message || '保存失败'; }
+    }
+
+    /* 模板库 */
+    let templates = [];
+
+    async function loadTemplates() {
+      const r = await api('/api/email-templates');
+      templates = (r && r.data) || [];
+      const list = document.getElementById('tplList');
+      if (templates.length === 0) {
+        list.innerHTML = '<div class="text-sm text-gray-400">暂无模板，点击右上角「新建模板」创建。</div>';
+        return;
+      }
+      list.innerHTML = templates.map(t => `
+        <div class="flex items-center justify-between p-3 rounded-lg" style="background:#f9fafb;border:1px solid #f3f4f6">
+          <div>
+            <span class="text-sm font-medium text-gray-800">${t.name}</span>
+            ${t.isDefault ? '<span class="badge" style="background:#fef3c7;color:#d97706;margin-left:8px">默认</span>' : ''}
+            <div class="text-xs text-gray-400 mt-1">${t.subject}</div>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="editTpl('${t.id}')" class="test-btn">编辑</button>
+            <button type="button" onclick="delTpl('${t.id}','${t.name}')" class="test-btn" style="background:#fee2e2;color:#dc2626;border-color:#fecaca">删除</button>
+          </div>
+        </div>`).join('');
+    }
+
+    function showTplEditor() {
+      document.getElementById('tplEditorTitle').textContent = '新建模板';
+      document.getElementById('tplId').value = '';
+      document.getElementById('tplName').value = '';
+      document.getElementById('tplSubject').value = '';
+      document.getElementById('tplBody').value = '';
+      document.getElementById('tplIsDefault').checked = templates.length === 0;
+      document.getElementById('tplEditor').style.display = '';
+      updatePreview();
+    }
+    function editTpl(id) {
+      const t = templates.find(x => x.id === id);
+      if (!t) return;
+      document.getElementById('tplEditorTitle').textContent = '编辑模板';
+      document.getElementById('tplId').value = t.id;
+      document.getElementById('tplName').value = t.name;
+      document.getElementById('tplSubject').value = t.subject;
+      document.getElementById('tplBody').value = t.body;
+      document.getElementById('tplIsDefault').checked = t.isDefault;
+      document.getElementById('tplEditor').style.display = '';
+      updatePreview();
+    }
+    function closeTplEditor() { document.getElementById('tplEditor').style.display = 'none'; }
+
+    function insertVar(name) {
+      const el = document.getElementById('tplBody');
+      const pos = el.selectionStart || el.value.length;
+      el.value = el.value.slice(0, pos) + `{{${name}}}` + el.value.slice(pos);
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const subject = document.getElementById('tplSubject').value;
+      const body = document.getElementById('tplBody').value;
+      const vars = { '客户名': '张三', '到期日期': '2026-10-08', '剩余天数': '7', '金额': '$9.99', '分类': '会员' };
+      let s = subject, b = body;
+      for (const [k, v] of Object.entries(vars)) {
+        s = s.split(`{{${k}}}`).join(v);
+        b = b.split(`{{${k}}}`).join(v);
+      }
+      document.getElementById('tplPreview').innerHTML =
+        '<b>主题：</b>' + (s || '(空)') + '<br><br>' + (b || '(空)').replace(/\n/g, '<br>');
+    }
+    document.getElementById('tplSubject')?.addEventListener('input', updatePreview);
+    document.getElementById('tplBody')?.addEventListener('input', updatePreview);
+
+    async function saveTpl() {
+      const id = document.getElementById('tplId').value;
+      const r = await api('/api/email-templates', {
+        method: 'POST',
+        body: JSON.stringify({
+          id: id || undefined,
+          name: document.getElementById('tplName').value.trim(),
+          subject: document.getElementById('tplSubject').value.trim(),
+          body: document.getElementById('tplBody').value,
+          isDefault: document.getElementById('tplIsDefault').checked
+        })
+      });
+      if (r.success) { closeTplEditor(); loadTemplates(); }
+      else alert(r.message || '保存失败');
+    }
+
+    async function delTpl(id, name) {
+      if (!confirm(`确认删除模板「${name}」？`)) return;
+      await api('/api/email-templates/' + id, { method: 'DELETE' });
+      loadTemplates();
+    }
+
+    loadSmtp();
+    loadTemplates();
+
+    // 测试通知：把当前表单值（含未保存修改）一并提交，服务端临时值优先
+    async function testChannel(channel) {
+      const btn = document.querySelector('.test-btn[data-ch="' + channel + '"]');
+      const msg = document.getElementById('testMsg');
+      const enabled = [...document.querySelectorAll('input[name="notifier"]:checked')].map(x => x.value);
+      const hoursRaw = document.getElementById('notifyHours').value.trim();
+      const hours = hoursRaw ? hoursRaw.split(/[,，\s]+/).filter(Boolean) : ['08', '20'];
+
+      // 勾选上该渠道（用户可能没勾就点测试）
+      const cb = document.querySelector('input[name="notifier"][value="' + channel + '"]');
+      if (cb && !cb.checked) { cb.checked = true; syncSections(); }
+
+      btn.disabled = true;
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>发送中';
+      msg.style.color = '';
+      msg.textContent = '正在向 ' + channel + ' 发送测试通知...';
+
+      try {
+        const r = await api('/api/my/notify-test', {
+          method: 'POST',
+          body: JSON.stringify({
+            channel,
+            ENABLED_NOTIFIERS: enabled,
+            TG_BOT_TOKEN: document.getElementById('tgToken').value.trim(),
+            TG_CHAT_ID: document.getElementById('tgChatId').value.trim(),
+            BARK_DEVICE_KEY: document.getElementById('barkKey').value.trim(),
+            WECHATBOT_WEBHOOK: document.getElementById('wechatbotWebhook').value.trim(),
+            WECHATBOT_MSG_TYPE: document.getElementById('wechatbotMsgType').value,
+            RESEND_API_KEY: document.getElementById('resendKey').value.trim(),
+            EMAIL_FROM: document.getElementById('emailFrom').value.trim(),
+            EMAIL_TO: document.getElementById('emailTo').value.trim(),
+            WEBHOOK_URL: document.getElementById('webhookUrl').value.trim(),
+            TIMEZONE: document.getElementById('timezone').value,
+            NOTIFICATION_HOURS: hours
+          })
+        });
+        if (r.success) {
+          msg.style.color = '#059669';
+          msg.textContent = '✓ ' + (r.message || '发送成功');
+        } else {
+          msg.style.color = '#dc2626';
+          msg.textContent = r.message || '发送失败';
+        }
+      } catch (e) {
+        msg.style.color = '#dc2626';
+        msg.textContent = '请求失败，请稍后再试';
+      }
+      btn.disabled = false;
+      btn.innerHTML = orig;
+    }
+  </script>
+</body>
+</html>
