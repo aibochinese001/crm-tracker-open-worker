@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>个人中心 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources}
+  <style>
+    body { background: #f3f4f6; }
+    html.dark body { background: #111827; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    html.dark .card { background: #1f2937; }
+    html.dark .text-gray-800 { color: #f3f4f6; }
+    html.dark .text-gray-600, html.dark .text-gray-700 { color: #cbd5e1; }
+    .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background: #667eea; color: #fff; }
+    .btn-primary:hover { background: #5a6fd6; }
+    .badge { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; }
+    .badge-member { background: #fef3c7; color: #d97706; }
+    .badge-free { background: #f3f4f6; color: #6b7280; }
+    .badge-paid { background: #d1fae5; color: #059669; }
+    .badge-pending { background: #fef3c7; color: #d97706; }
+    .badge-expired { background: #fee2e2; color: #dc2626; }
+    html.dark .badge-member { background: #78350f; color: #fcd34d; }
+    html.dark .badge-free { background: #374151; color: #9ca3af; }
+    /* 在线客服悬浮图标 + 聊天弹窗 */
+    #livechatBtn {
+      position: fixed; right: 18px; bottom: 18px;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; cursor: pointer; z-index: 900;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.45);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    #livechatBtn:hover { transform: scale(1.08); box-shadow: 0 6px 18px rgba(102, 126, 234, 0.55); }
+    #livechatModal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    #livechatModal.open { display: flex; }
+    .lc-modal-content {
+      background: #2c2c2c; border-radius: 12px; overflow: hidden;
+      width: 92%; max-width: 460px; height: 80vh; max-height: 640px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: lcSlideIn 0.25s ease;
+    }
+    @keyframes lcSlideIn { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .lc-modal-header {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; padding: 12px 16px; font-size: 0.95rem; font-weight: 600;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .lc-close { cursor: pointer; font-size: 1.5rem; line-height: 1; opacity: 0.85; }
+    .lc-close:hover { opacity: 1; }
+    .lc-iframe { width: 100%; flex: 1; border: none; background: #fff; }
+    @media (max-width: 768px) {
+      .lc-modal-content {
+        width: 92%; max-width: 420px; height: 72vh; max-height: 560px;
+        border-radius: 12px; margin-bottom: 8vh;
+      }
+      #livechatBtn { right: 14px; bottom: 14px; width: 48px; height: 48px; font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- 统一顶部导航（与 /admin 客户列表一致） -->
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-xs text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单" class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-indigo-600 bg-indigo-50">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <!-- 会员状态卡 -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-crown mr-2" style="color:#f59e0b"></i>会员状态</h2>
+        <span id="memberBadge" class="badge badge-free">加载中...</span>
+      </div>
+      <div id="memberInfo" class="text-sm text-gray-600">加载中...</div>
+      <div id="plansSection" class="mt-4 pt-4 border-t" style="border-color:#f3f4f6">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">可购套餐（订阅付费会员，无限添加客户数）</h3>
+        <div id="plansGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+      </div>
+    </div>
+
+    <!-- 账号信息 + 修改密码 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h2 class="font-bold text-gray-800 mb-4"><i class="fas fa-user-circle mr-2"></i>账号信息</h2>
+        <div id="accountInfo" class="text-sm text-gray-600 space-y-2">加载中...</div>
+      </div>
+
+      <div class="card p-6">
+        <h2 class="font-bold text-gray-800 mb-4"><i class="fas fa-key mr-2"></i>修改密码</h2>
+        <form id="pwdForm" class="space-y-3">
+          <input type="password" id="oldPassword" placeholder="当前密码" required
+            class="w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e2e8f0">
+          <input type="password" id="newPassword" placeholder="新密码（至少 8 位）" required
+            class="w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e2e8f0">
+          <input type="password" id="newPassword2" placeholder="确认新密码" required
+            class="w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e2e8f0">
+          <div id="pwdMsg" class="text-sm" role="alert"></div>
+          <button type="submit" class="btn btn-primary w-full">更新密码</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 我的订单 -->
+    <div class="card p-6">
+      <h2 class="font-bold text-gray-800 mb-4"><i class="fas fa-receipt mr-2"></i>我的订单</h2>
+      <div id="ordersList" class="text-sm text-gray-600">加载中...</div>
+    </div>
+  </main>
+
+  <script>
+  // 统一顶部导航：系统时间 + 移动端菜单 + 角色感知（与 /admin 一致）
+  (function () {
+    let navTz = 'Asia/Shanghai';
+    function fmtTz(tz) {
+      try {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const parts = dtf.formatToParts(now);
+        const get = (t) => Number(parts.find((x) => x.type === t).value);
+        const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+        const offset = Math.round((target - now.getTime()) / 3600000);
+        const names = { 'Asia/Shanghai': '北京时间', 'Asia/Tokyo': '东京时间', 'Asia/Hong_Kong': '香港时间', 'Asia/Taipei': '台北时间' };
+        return (names[tz] || tz) + ' (UTC' + (offset >= 0 ? '+' + offset : offset) + ')';
+      } catch (e) { return tz; }
+    }
+    function startClock() {
+      const update = () => {
+        try {
+          const now = new Date();
+          const s = now.toLocaleString('zh-CN', { timeZone: navTz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const tz = fmtTz(navTz);
+          const el = document.getElementById('systemTimeDisplay');
+          const mob = document.getElementById('mobileTimeDisplay');
+          if (el) el.textContent = s + '  ' + tz;
+          if (mob) mob.textContent = s + ' ' + tz;
+        } catch (e) { /* ignore */ }
+      };
+      update();
+      setInterval(update, 1000);
+    }
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (!btn || !menu) return;
+      const sync = () => {
+        const icon = btn.querySelector('i');
+        const hidden = menu.classList.contains('hidden');
+        btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        if (icon) { icon.classList.toggle('fa-bars', hidden); icon.classList.toggle('fa-times', !hidden); }
+      };
+      btn.addEventListener('click', () => { menu.classList.toggle('hidden'); sync(); });
+      menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => { menu.classList.add('hidden'); sync(); }));
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (btn.contains(e.target) || menu.contains(e.target)) return;
+        menu.classList.add('hidden'); sync();
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); sync(); } });
+      sync();
+    }
+    async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    }
+    (async function init() {
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        if (cfg && cfg.TIMEZONE) navTz = cfg.TIMEZONE;
+      } catch (e) { /* 保持默认时区 */ }
+      startClock();
+      setupMobileMenu();
+      applyRoleNav();
+    })();
+  })();
+  </script>
+
+  <script>
+    let me = null;
+    let payChannels = ['alipay', 'wxpay'];
+    // 支付渠道官方 logo 图标（仅图标不显文字）
+    const PAY_CHANNEL_META = {
+      alipay: { label: '支付宝', icon: 'fab fa-alipay', color: '#1677FF', bg: '#fff' },
+      wxpay: { label: '微信支付', icon: 'fab fa-weixin', color: '#07C160', bg: '#fff' },
+      usdt: { label: 'USDT', icon: 'img', img: 'https://cf.aibochinese.com/%E7%B4%A0%E6%9D%90%E7%AB%99/202608/social-media-ico/usdt-tether-logo.png', color: '#26A17B', bg: '#fff' },
+      fiatstripe: { label: 'Stripe', icon: 'fab fa-stripe-s', color: '#635BFF', bg: '#fff' },
+      ecny: { label: 'e-CNY 数字人民币', icon: 'img', img: 'https://aibochinese.com/media/pay-icons/ecny.png', color: '#1667D0', bg: '#fff' }
+    };
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      return res.json();
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function fmtAmount(cents) {
+      return '$' + (cents / 100).toFixed(2);
+    }
+
+    async function loadMe() {
+      const r = await api('/api/me');
+      if (!r.success || !r.data) { window.location.href = '/'; return; }
+      me = r.data;
+      document.getElementById('accountInfo').innerHTML = `
+        <div><span class="text-gray-400">用户名：</span>${me.username}</div>
+        <div><span class="text-gray-400">角色：</span>${me.role === 'admin' ? '管理员' : '尊敬的用户'}</div>
+        <div><span class="text-gray-400">注册时间：</span>${fmtTime(me.createdAt)}</div>`;
+
+      const isMember = me.planId && (!me.planExpiresAt || me.planExpiresAt > Date.now());
+      const badge = document.getElementById('memberBadge');
+      const info = document.getElementById('memberInfo');
+      if (isMember) {
+        badge.className = 'badge badge-member';
+        badge.textContent = '会员有效';
+        info.innerHTML = `会员有效期至：<b>${me.planExpiresAt ? fmtTime(me.planExpiresAt) : '永久'}</b>`;
+      } else {
+        badge.className = 'badge badge-free';
+        badge.textContent = '免费版';
+        info.innerHTML = '当前为免费版。开通会员可获得更多权益。';
+      }
+    }
+
+    async function loadPlans() {
+      const r = await api('/api/plans');
+      const grid = document.getElementById('plansGrid');
+      const plans = r.data || [];
+      // 服务端下发的开放支付方式
+      if (Array.isArray(r.payChannels) && r.payChannels.length > 0) {
+        payChannels = r.payChannels;
+      }
+      if (plans.length === 0) {
+        grid.innerHTML = '<div class="text-gray-400 text-sm">暂无可购套餐</div>';
+        return;
+      }
+      grid.innerHTML = plans.map(p => `
+        <div class="card p-4" style="box-shadow:0 1px 2px rgba(0,0,0,0.06)">
+          <div class="font-bold text-gray-800 mb-1">${p.name}</div>
+          <div class="text-2xl font-bold mb-2" style="color:#667eea">${fmtAmount(p.priceCents)}</div>
+          <div class="text-xs text-gray-500 mb-3">有效期 ${p.durationDays} 天</div>
+          ${p.priceCents > 0
+            ? `<div id="payBtns-${p.id}" class="flex gap-2 justify-center flex-wrap"></div>`
+            : `<button onclick="contactAdmin('${p.name}')" class="btn btn-primary w-full">联系开通</button>`}
+        </div>`).join('');
+      // 渲染支付图标按钮（仅开放渠道 + 官方 logo 图标）
+      if (payChannels.length > 0) {
+        for (const p of plans) {
+          if (p.priceCents <= 0) continue;
+          const box = document.getElementById('payBtns-' + p.id);
+          if (!box) continue;
+          box.innerHTML = payChannels.map(ch => {
+            const info = PAY_CHANNEL_META[ch];
+            if (!info) return '';
+            const icon = info.icon === 'img'
+              ? `<img src="${info.img}" alt="${info.label}" style="width:38px;height:30px;object-fit:contain;display:block">`
+              : `<i class="${info.icon}" style="color:${info.color};font-size:1.4rem"></i>`;
+            return `<button onclick="checkout('${p.id}','${ch}')" title="${info.label}"
+              style="width:52px;height:44px;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;border:1px solid #e5e7eb;background:${info.bg};cursor:pointer">
+              ${icon}
+            </button>`;
+          }).join('');
+        }
+      }
+    }
+
+    async function loadOrders() {
+      const r = await api('/api/orders?page=1&pageSize=5');
+      const el = document.getElementById('ordersList');
+      const orders = (r.data && r.data.items) || [];
+      const total = (r.data && r.data.total) || 0;
+      if (orders.length === 0) {
+        el.innerHTML = '<div class="text-gray-400">暂无订单</div>';
+        return;
+      }
+      const statusMap = { paid: ['badge-paid', '已完成'], pending: ['badge-pending', '待支付'], expired: ['badge-expired', '已过期'] };
+      el.innerHTML = `<table class="w-full text-sm"><thead><tr class="text-gray-400 text-left">
+          <th class="py-2 font-medium">套餐</th><th class="py-2 font-medium">金额</th>
+          <th class="py-2 font-medium">状态</th><th class="py-2 font-medium">时间</th>
+        </tr></thead><tbody>` +
+        orders.map(o => {
+          const [cls, text] = statusMap[o.status] || ['badge-free', o.status];
+          return `<tr class="border-t" style="border-color:#f3f4f6">
+            <td class="py-2">${o.planName}</td>
+            <td class="py-2">${fmtAmount(o.amountCents)}</td>
+            <td class="py-2"><span class="badge ${cls}">${text}</span></td>
+            <td class="py-2 text-gray-500">${fmtTime(o.createdAt)}</td>
+          </tr>`;
+        }).join('') + '</tbody></table>' +
+        (total > 5 ? `<div class="text-center mt-3"><a href="javascript:void(0)" onclick="toggleAllOrders()" id="moreOrdersBtn" class="text-sm" style="color:#667eea">查看全部 ${total} 条订单 <i class="fas fa-chevron-down"></i></a></div>` : '');
+      el.dataset.showingAll = '0';
+    }
+
+    async function toggleAllOrders() {
+      const el = document.getElementById('ordersList');
+      const showingAll = el.dataset.showingAll === '1';
+      if (!showingAll) {
+        const r = await api('/api/orders?page=1&pageSize=50');
+        renderOrders((r.data && r.data.items) || []);
+        el.dataset.showingAll = '1';
+        const btn = document.getElementById('moreOrdersBtn');
+        if (btn) btn.innerHTML = '收起 <i class="fas fa-chevron-up"></i>';
+      } else {
+        await loadOrders();
+      }
+    }
+
+    function renderOrders(orders) {
+      const el = document.getElementById('ordersList');
+      const statusMap = { paid: ['badge-paid', '已完成'], pending: ['badge-pending', '待支付'], expired: ['badge-expired', '已过期'] };
+      const tbody = orders.map(o => {
+        const [cls, text] = statusMap[o.status] || ['badge-free', o.status];
+        return `<tr class="border-t" style="border-color:#f3f4f6">
+          <td class="py-2">${o.planName}</td>
+          <td class="py-2">${fmtAmount(o.amountCents)}</td>
+          <td class="py-2"><span class="badge ${cls}">${text}</span></td>
+          <td class="py-2 text-gray-500">${fmtTime(o.createdAt)}</td>
+        </tr>`;
+      }).join('');
+      const table = el.innerHTML.split('<tbody>')[0] + '<tbody>' + tbody + '</tbody></table>';
+      el.innerHTML = table + (el.innerHTML.includes('moreOrdersBtn') ? el.innerHTML.split('</tbody></table>')[1] : '');
+    }
+
+    document.getElementById('pwdForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msgEl = document.getElementById('pwdMsg');
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const newPassword2 = document.getElementById('newPassword2').value;
+      msgEl.style.color = '';
+      if (newPassword !== newPassword2) {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = '两次输入的新密码不一致';
+        return;
+      }
+      const r = await api('/api/password', {
+        method: 'POST',
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      if (r.success) {
+        msgEl.style.color = '#059669';
+        msgEl.textContent = '密码已更新';
+        document.getElementById('pwdForm').reset();
+      } else {
+        msgEl.style.color = '#dc2626';
+        msgEl.textContent = r.message || '修改失败';
+      }
+    });
+
+    function logout() {
+      fetch('/api/logout').finally(() => { window.location.href = '/'; });
+    }
+
+    /* ===== 在线客服悬浮图标 + 聊天弹窗（右侧） ===== */
+    (function initLiveChat() {
+      const chatUrl = 'https://opcgrow.org/livechat/chat.php';
+
+      // 悬浮图标（右侧固定）
+      const btn = document.createElement('div');
+      btn.id = 'livechatBtn';
+      btn.title = '在线客服';
+      btn.innerHTML = '<i class="fas fa-headset"></i>';
+      document.body.appendChild(btn);
+
+      // 聊天弹窗
+      const modal = document.createElement('div');
+      modal.id = 'livechatModal';
+      modal.innerHTML = `
+        <div class="lc-modal-content">
+          <div class="lc-modal-header">
+            <span><i class="fas fa-headset mr-2"></i>在线客服</span>
+            <span class="lc-close" title="关闭">&times;</span>
+          </div>
+          <iframe id="livechatFrame" class="lc-iframe" data-src="${chatUrl}"></iframe>
+        </div>`;
+      document.body.appendChild(modal);
+
+      const frame = modal.querySelector('#livechatFrame');
+      const open = () => {
+        // 惰性加载：首次打开才请求 chat.php
+        if (!frame.src) frame.src = chatUrl;
+        modal.classList.add('open');
+      };
+      const close = () => modal.classList.remove('open');
+
+      btn.onclick = open;
+      modal.querySelector('.lc-close').onclick = close;
+      modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    })();
+
+    async function checkout(planId, payType) {
+      const r = await api('/api/orders/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ planId, payType })
+      });
+      if (r.success && r.data && r.data.payUrl) {
+        window.location.href = r.data.payUrl;
+      } else {
+        alert(r.message || '下单失败，请稍后再试');
+      }
+    }
+
+    function contactAdmin(name) {
+      alert(`请联系管理员开通「${name}」`);
+    }
+
+    loadMe();
+    loadPlans();
+    loadOrders();
+  </script>
+</body>
+</html>

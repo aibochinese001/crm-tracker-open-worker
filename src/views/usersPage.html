@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources}
+  <style>
+    body { background: #f3f4f6; }
+    html.dark body { background: #111827; }
+    .card {
+      background: #fff;
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    html.dark .card { background: #1f2937; }
+    html.dark .text-gray-800 { color: #f3f4f6; }
+    html.dark .text-gray-600, html.dark .text-gray-700 { color: #cbd5e1; }
+    html.dark table { color: #e5e7eb; }
+    .btn { padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background: #667eea; color: #fff; }
+    .btn-primary:hover { background: #5a6fd6; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    .badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; }
+    .badge-admin { background: #ede9fe; color: #7c3aed; }
+    .badge-user { background: #e0e7ff; color: #4338ca; }
+    .badge-active { background: #d1fae5; color: #059669; }
+    .badge-disabled { background: #fee2e2; color: #dc2626; }
+    .badge-member { background: #fef3c7; color: #d97706; }
+    .badge-free { background: #f3f4f6; color: #6b7280; }
+    html.dark .badge-admin { background: #4c1d95; color: #ddd6fe; }
+    html.dark .badge-user { background: #312e81; color: #c7d2fe; }
+    html.dark .badge-active { background: #064e3b; color: #6ee7b7; }
+    html.dark .badge-disabled { background: #7f1d1d; color: #fca5a5; }
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 50; }
+    .modal-bg.show { display: flex; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- 统一顶部导航（与 /admin 客户列表一致） -->
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-xs text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单" class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-indigo-600 bg-indigo-50">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <nav class="bg-white shadow-sm" style="background:#fff">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/admin" class="text-gray-600 hover:text-gray-900 text-sm"><i class="fas fa-arrow-left mr-1"></i>返回系统</a>
+        <h1 class="text-lg font-bold text-gray-800">用户管理</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/admin/orders" class="text-sm text-gray-600 hover:text-gray-900"><i class="fas fa-receipt mr-1"></i>订单管理</a>
+        <a href="/admin/plans" class="text-sm text-gray-600 hover:text-gray-900"><i class="fas fa-crown mr-1"></i>套餐管理</a>
+        <a href="/admin/config" class="text-sm text-gray-600 hover:text-gray-900"><i class="fas fa-cog mr-1"></i>系统配置</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <div class="card p-4 mb-4 flex flex-wrap items-center gap-3">
+      <input type="text" id="searchInput" placeholder="搜索用户名..."
+        class="input-field flex-1 min-w-48 px-3 py-2 rounded-lg border text-sm focus:outline-none" style="border-color:#e2e8f0">
+      <button onclick="loadUsers(1)" class="btn btn-primary"><i class="fas fa-search mr-1"></i>搜索</button>
+      <span id="totalInfo" class="text-sm text-gray-600 ml-auto"></span>
+    </div>
+
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-600" style="background:#f9fafb">
+          <tr>
+            <th class="px-4 py-3 text-left font-medium">用户名</th>
+            <th class="px-4 py-3 text-left font-medium">角色</th>
+            <th class="px-4 py-3 text-left font-medium">状态</th>
+            <th class="px-4 py-3 text-left font-medium">会员</th>
+            <th class="px-4 py-3 text-left font-medium">客户数</th>
+            <th class="px-4 py-3 text-left font-medium">注册时间</th>
+            <th class="px-4 py-3 text-right font-medium">操作</th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex items-center justify-between mt-4">
+      <button id="prevBtn" onclick="changePage(-1)" class="btn btn-primary disabled:opacity-50" disabled><i class="fas fa-chevron-left mr-1"></i>上一页</button>
+      <span id="pageInfo" class="text-sm text-gray-600"></span>
+      <button id="nextBtn" onclick="changePage(1)" class="btn btn-primary disabled:opacity-50" disabled>下一页<i class="fas fa-chevron-right ml-1"></i></button>
+    </div>
+  </main>
+
+  <!-- 修改用户名弹窗 -->
+  <div class="modal-bg" id="renameModal">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">修改用户名 - <span id="renameUsername"></span></h3>
+      <input type="text" id="newUsername" placeholder="3-32 位字母、数字或下划线"
+        class="w-full px-3 py-2 rounded-lg border text-sm mb-4" style="border-color:#e2e8f0">
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeModal()" class="btn" style="background:#e5e7eb">取消</button>
+        <button onclick="submitRename()" class="btn btn-primary">确认修改</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 会员调整弹窗 -->
+  <div class="modal-bg" id="memberModal">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">调整会员 - <span id="modalUsername"></span></h3>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">套餐</label>
+          <select id="modalPlan" class="w-full px-3 py-2 rounded-lg border text-sm" style="border-color:#e2e8f0"></select>
+        </div>
+        <div class="flex gap-2 justify-end pt-2">
+          <button onclick="closeModal()" class="btn" style="background:#e5e7eb">取消</button>
+          <button onclick="cancelMembership()" class="btn" style="background:#fee2e2;color:#dc2626">取消会员</button>
+          <button onclick="grantMembership()" class="btn btn-primary">开通/延期</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 重置密码弹窗 -->
+  <div class="modal-bg" id="pwdModal">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4">重置密码 - <span id="pwdUsername"></span></h3>
+      <input type="text" id="newPassword" placeholder="新密码（至少 8 位）"
+        class="w-full px-3 py-2 rounded-lg border text-sm mb-4" style="border-color:#e2e8f0">
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeModal()" class="btn" style="background:#e5e7eb">取消</button>
+        <button onclick="resetPassword()" class="btn btn-primary">确认重置</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // 统一顶部导航：系统时间 + 移动端菜单 + 角色感知（与 /admin 一致）
+  (function () {
+    let navTz = 'Asia/Shanghai';
+    function fmtTz(tz) {
+      try {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const parts = dtf.formatToParts(now);
+        const get = (t) => Number(parts.find((x) => x.type === t).value);
+        const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+        const offset = Math.round((target - now.getTime()) / 3600000);
+        const names = { 'Asia/Shanghai': '北京时间', 'Asia/Tokyo': '东京时间', 'Asia/Hong_Kong': '香港时间', 'Asia/Taipei': '台北时间' };
+        return (names[tz] || tz) + ' (UTC' + (offset >= 0 ? '+' + offset : offset) + ')';
+      } catch (e) { return tz; }
+    }
+    function startClock() {
+      const update = () => {
+        try {
+          const now = new Date();
+          const s = now.toLocaleString('zh-CN', { timeZone: navTz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const tz = fmtTz(navTz);
+          const el = document.getElementById('systemTimeDisplay');
+          const mob = document.getElementById('mobileTimeDisplay');
+          if (el) el.textContent = s + '  ' + tz;
+          if (mob) mob.textContent = s + ' ' + tz;
+        } catch (e) { /* ignore */ }
+      };
+      update();
+      setInterval(update, 1000);
+    }
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (!btn || !menu) return;
+      const sync = () => {
+        const icon = btn.querySelector('i');
+        const hidden = menu.classList.contains('hidden');
+        btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        if (icon) { icon.classList.toggle('fa-bars', hidden); icon.classList.toggle('fa-times', !hidden); }
+      };
+      btn.addEventListener('click', () => { menu.classList.toggle('hidden'); sync(); });
+      menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => { menu.classList.add('hidden'); sync(); }));
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (btn.contains(e.target) || menu.contains(e.target)) return;
+        menu.classList.add('hidden'); sync();
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); sync(); } });
+      sync();
+    }
+    async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    }
+    (async function init() {
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        if (cfg && cfg.TIMEZONE) navTz = cfg.TIMEZONE;
+      } catch (e) { /* 保持默认时区 */ }
+      startClock();
+      setupMobileMenu();
+      applyRoleNav();
+    })();
+  })();
+  </script>
+
+  <script>
+    let currentPage = 1;
+    let currentUser = null;
+    let plans = [];
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...opts
+      });
+      return res.json();
+    }
+
+    async function loadPlans() {
+      const r = await api('/api/plans');
+      plans = (r.data || []).filter(p => p.isActive);
+      const sel = document.getElementById('modalPlan');
+      sel.innerHTML = plans.map(p =>
+        `<option value="${p.id}">${p.name}（${p.durationDays} 天）</option>`
+      ).join('');
+    }
+
+    async function loadUsers(page = 1) {
+      currentPage = page;
+      const keyword = document.getElementById('searchInput').value.trim();
+      const r = await api(`/api/users?page=${page}&keyword=${encodeURIComponent(keyword)}`);
+      if (!r.success) { alert(r.message || '加载失败'); return; }
+      renderUsers(r.data);
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return '-';
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function renderUsers({ items, total }) {
+      const tbody = document.getElementById('userTableBody');
+      if (!items || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-400">暂无用户</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map(u => {
+        const isMember = u.planId && (!u.planExpiresAt || u.planExpiresAt > Date.now());
+        const memberText = isMember
+          ? `<span class="badge badge-member">会员</span> <span class="text-xs text-gray-500">${u.planExpiresAt ? '至 ' + fmtTime(u.planExpiresAt) : '永久'}</span>`
+          : '<span class="badge badge-free">免费</span>';
+        const roleBadge = u.role === 'admin' ? '<span class="badge badge-admin">管理员</span>' : '<span class="badge badge-user">用户</span>';
+        const statusBadge = u.status === 'active' ? '<span class="badge badge-active">正常</span>' : '<span class="badge badge-disabled">已禁用</span>';
+        const actions = u.role === 'admin'
+          ? '<span class="text-xs text-gray-400">系统账号</span>'
+          : `<button onclick="openRenameModal('${u.id}','${u.username}')" class="btn btn-sm btn-primary mr-1" title="修改用户名"><i class="fas fa-pen"></i></button>
+             <button onclick="openMemberModal('${u.id}','${u.username}')" class="btn btn-sm btn-primary mr-1" title="调整会员"><i class="fas fa-crown"></i></button>
+             <button onclick="openPwdModal('${u.id}','${u.username}')" class="btn btn-sm btn-primary mr-1" title="重置密码"><i class="fas fa-key"></i></button>
+             <button onclick="toggleStatus('${u.id}','${u.status}')" class="btn btn-sm ${u.status==='active'?'':'btn-primary'}" style="${u.status==='active'?'background:#fee2e2;color:#dc2626':''}" title="${u.status==='active'?'禁用':'启用'}">
+               <i class="fas ${u.status==='active'?'fa-ban':'fa-check'}"></i>
+             </button>`;
+        return `<tr class="border-t" style="border-color:#f3f4f6">
+          <td class="px-4 py-3 font-medium">${u.username}</td>
+          <td class="px-4 py-3">${roleBadge}</td>
+          <td class="px-4 py-3">${statusBadge}</td>
+          <td class="px-4 py-3">${memberText}</td>
+          <td class="px-4 py-3">${u.subscriptionCount ?? '-'}</td>
+          <td class="px-4 py-3 text-gray-500">${fmtTime(u.createdAt)}</td>
+          <td class="px-4 py-3 text-right">${actions}</td>
+        </tr>`;
+      }).join('');
+
+      const totalPages = Math.ceil(total / 20) || 1;
+      document.getElementById('totalInfo').textContent = `共 ${total} 个用户`;
+      document.getElementById('pageInfo').textContent = `第 ${currentPage} / ${totalPages} 页`;
+      document.getElementById('prevBtn').disabled = currentPage <= 1;
+      document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+    }
+
+    function changePage(delta) { loadUsers(currentPage + delta); }
+
+    /* 修改用户名弹窗 */
+    function openRenameModal(id, username) {
+      currentUser = id;
+      document.getElementById('renameUsername').textContent = username;
+      document.getElementById('newUsername').value = '';
+      document.getElementById('renameModal').classList.add('show');
+    }
+    async function submitRename() {
+      const newUsername = document.getElementById('newUsername').value.trim();
+      if (!/^[a-zA-Z0-9_]{3,32}$/.test(newUsername)) {
+        alert('用户名需 3-32 位字母、数字或下划线');
+        return;
+      }
+      const r = await api(`/api/users/${currentUser}/username`, {
+        method: 'POST',
+        body: JSON.stringify({ username: newUsername })
+      });
+      alert(r.message || (r.success ? '已修改' : '操作失败'));
+      if (r.success) { closeModal(); loadUsers(currentPage); }
+    }
+
+    /* 会员弹窗 */
+    function openMemberModal(id, username) {
+      currentUser = id;
+      document.getElementById('modalUsername').textContent = username;
+      document.getElementById('memberModal').classList.add('show');
+    }
+    async function grantMembership() {
+      const planId = document.getElementById('modalPlan').value;
+      const r = await api(`/api/users/${currentUser}/membership`, {
+        method: 'POST',
+        body: JSON.stringify({ planId })
+      });
+      alert(r.message || (r.success ? '已开通' : '操作失败'));
+      closeModal(); loadUsers(currentPage);
+    }
+    async function cancelMembership() {
+      if (!confirm('确认取消该用户的会员？')) return;
+      const r = await api(`/api/users/${currentUser}/membership`, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'cancel' })
+      });
+      alert(r.message || (r.success ? '已取消' : '操作失败'));
+      closeModal(); loadUsers(currentPage);
+    }
+
+    /* 密码弹窗 */
+    function openPwdModal(id, username) {
+      currentUser = id;
+      document.getElementById('pwdUsername').textContent = username;
+      document.getElementById('newPassword').value = '';
+      document.getElementById('pwdModal').classList.add('show');
+    }
+    async function resetPassword() {
+      const pwd = document.getElementById('newPassword').value;
+      if (pwd.length < 8) { alert('密码至少 8 位'); return; }
+      const r = await api(`/api/users/${currentUser}/password`, {
+        method: 'POST',
+        body: JSON.stringify({ newPassword: pwd })
+      });
+      alert(r.message || (r.success ? '已重置' : '操作失败'));
+      closeModal();
+    }
+
+    async function toggleStatus(id, status) {
+      const target = status === 'active' ? 'disabled' : 'active';
+      if (!confirm(status === 'active' ? '确认禁用该用户？禁用后无法登录。' : '确认启用该用户？')) return;
+      const r = await api(`/api/users/${id}/status`, {
+        method: 'POST',
+        body: JSON.stringify({ status: target })
+      });
+      alert(r.message || (r.success ? '已更新' : '操作失败'));
+      loadUsers(currentPage);
+    }
+
+    function closeModal() {
+      document.getElementById('memberModal').classList.remove('show');
+      document.getElementById('pwdModal').classList.remove('show');
+      document.getElementById('renameModal').classList.remove('show');
+    }
+
+    loadPlans();
+    loadUsers(1);
+  </script>
+</body>
+</html>
