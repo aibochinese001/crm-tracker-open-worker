@@ -1,0 +1,37 @@
+{
+  "name": "crm-tracker-open-worker",
+  "version": "3.0.0",
+  "description": "订阅管理系统 - 基于 Cloudflare Workers + Hono",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'No build step required for Workers runtime'",
+    "setup": "node scripts/setup.mjs",
+    "deploy": "npx wrangler deploy",
+    "deploy:safe": "npm run setup && npm run deploy",
+    "scan:secrets": "node scripts/formal_secret_scan.mjs",
+    "verify:nav": "node scripts/verify-nav.cjs",
+    "lint": "tsc --noEmit -p jsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "hono": "^4.6.14"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.40",
+    "@cloudflare/workers-types": "^4.20241218.0",
+    "typescript": "^5.7.2",
+    "vitest": "~2.1.9",
+    "wrangler": "^3.99.0"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "subscription-management",
+    "notification",
+    "lunar-calendar",
+    "hono",
+    "crm"
+  ],
+  "license": "MIT"
+}

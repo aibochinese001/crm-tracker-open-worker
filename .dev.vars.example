@@ -1,0 +1,27 @@
+# ============================================================
+# .dev.vars.example —— 本地开发环境变量模板
+#
+# 用法：复制本文件为 .dev.vars 并填入真实值：
+#   cp .dev.vars.example .dev.vars        # macOS / Linux
+#   copy .dev.vars.example .dev.vars      # Windows PowerShell
+#
+# .dev.vars 已被 .gitignore 忽略，严禁提交真实密钥。
+# 生产环境使用 `npx wrangler secret put <NAME>` 逐项写入。
+# ============================================================
+
+# ── 必填（邮件发送依赖，缺失时邮件功能降级，其余功能不受影响） ──
+# SMTP 桥 HMAC 鉴权密钥（与你的 SMTP 桥服务端共享）。
+# 生成方式：node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# 也可直接运行 `npm run setup` 自动生成并追加到 .dev.vars。
+SMTP_BRIDGE_SECRET=REPLACE_WITH_YOUR_BRIDGE_SECRET
+
+# ── 可选：覆盖 SMTP 桥地址（默认 src/core/mail-bridge.js 中的占位符，部署前请替换为你的真实桥地址） ──
+# SMTP_BRIDGE_URL=https://your-bridge-host.example/send
+
+# ── 可选：管理后台 JWT 签名密钥（不配置时系统首次启动自动生成并存入 KV） ──
+# JWT_SECRET=REPLACE_WITH_RANDOM_SECRET
+
+# ── 可选：支付网关（不配置时支付功能降级为"仅展示套餐"，不影响订阅/提醒） ──
+# EPAY_API_URL=https://your-epay-gateway.example
+# EPAY_PID=1000
+# EPAY_KEY=REPLACE_WITH_EPAY_MERCHANT_KEY
