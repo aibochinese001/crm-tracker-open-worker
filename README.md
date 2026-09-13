@@ -1,4 +1,4 @@
-# SubsTracker — 订阅管理与提醒系统
+# CRM-Tracker — 客户跟进管理与提醒系统
 
 基于 **Cloudflare Workers + KV** 的轻量级订阅到期提醒。在网页里管理订阅，到点通过 Telegram / Bark / 企业微信 / ntfy 等 **10 种渠道** 推送，并自带发送与调度日志方便排查。
 
