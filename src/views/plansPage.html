@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>套餐管理 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources}
+  <style>
+    body { background: #f3f4f6; }
+    html.dark body { background: #111827; }
+    .card { background: #fff; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    html.dark .card { background: #1f2937; }
+    html.dark .text-gray-800 { color: #f3f4f6; }
+    html.dark .text-gray-600, html.dark .text-gray-700 { color: #cbd5e1; }
+    .btn { padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; cursor: pointer; }
+    .btn-primary { background: #667eea; color: #fff; }
+    .btn-primary:hover { background: #5a6fd6; }
+    .badge { padding: 0.125rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; }
+    .badge-on { background: #d1fae5; color: #059669; }
+    .badge-off { background: #f3f4f6; color: #6b7280; }
+    html.dark .badge-on { background: #064e3b; color: #6ee7b7; }
+    .inp { width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; font-size: 0.875rem; }
+    .inp:focus { outline: none; border-color: #667eea; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <!-- 统一顶部导航（与 /admin 客户列表一致） -->
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-xs text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-indigo-600 border-b-2 border-indigo-600 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单" class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-indigo-600 bg-indigo-50">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <nav class="shadow-sm" style="background:#fff">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/admin/users" class="text-gray-600 hover:text-gray-900 text-sm"><i class="fas fa-arrow-left mr-1"></i>用户管理</a>
+        <h1 class="text-lg font-bold text-gray-800">套餐与系统配置</h1>
+      </div>
+      <a href="/admin" class="text-sm text-gray-600 hover:text-gray-900">返回系统</a>
+    </div>
+  </nav>
+
+  <main class="max-w-5xl mx-auto px-4 py-6 space-y-6">
+    <!-- 套餐列表 -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-crown mr-2" style="color:#f59e0b"></i>会员套餐</h2>
+        <button onclick="showEditModal()" class="btn btn-primary"><i class="fas fa-plus mr-1"></i>新增套餐</button>
+      </div>
+      <table class="w-full text-sm">
+        <thead class="text-gray-400 text-left">
+          <tr><th class="py-2 font-medium">名称</th><th class="py-2 font-medium">时长</th><th class="py-2 font-medium">价格</th><th class="py-2 font-medium">客户上限</th><th class="py-2 font-medium">状态</th><th class="py-2 text-right font-medium">操作</th></tr>
+        </thead>
+        <tbody id="plansBody"></tbody>
+      </table>
+    </div>
+
+    <!-- 系统配置 -->
+    <div class="card p-6">
+      <h2 class="font-bold text-gray-800 mb-4"><i class="fas fa-cog mr-2"></i>系统配置</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">免费用户可创建客户数</label>
+          <input type="number" id="freeQuota" min="0" class="inp" placeholder="默认 3">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">开放注册</label>
+          <select id="allowReg" class="inp">
+            <option value="1">开放</option>
+            <option value="0">关闭</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="saveConfig()" class="btn btn-primary mt-4">保存配置</button>
+    </div>
+
+    <!-- 支付设置（P3 用） -->
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-gray-800"><i class="fas fa-credit-card mr-2"></i>易支付网关设置</h2>
+        <a href="https://api.payone.uk" target="_blank" rel="noopener" class="btn" style="background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe">
+          <i class="fas fa-store mr-1"></i>开通商户
+        </a>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">网关地址</label>
+          <input type="text" id="epayApiUrl" class="inp" placeholder="https://pay.example.com">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">商户 PID</label>
+          <input type="text" id="epayPid" class="inp" placeholder="1000">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">商户密钥</label>
+          <input type="password" id="epayKey" class="inp" placeholder="留空保持不变">
+        </div>
+      </div>
+      <div class="mt-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">开放支付方式（未勾选的对用户隐藏）</label>
+        <div class="flex flex-wrap gap-4">
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="payChannel" value="alipay" class="form-checkbox h-4 w-4">
+            <i class="fab fa-alipay text-blue-500"></i>支付宝
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="payChannel" value="wxpay" class="form-checkbox h-4 w-4">
+            <i class="fab fa-weixin text-green-600"></i>微信支付
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="payChannel" value="usdt" class="form-checkbox h-4 w-4">
+            <i class="fas fa-coins text-amber-500"></i>USDT
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="payChannel" value="fiatstripe" class="form-checkbox h-4 w-4">
+            <i class="fab fa-stripe-s text-indigo-500"></i>Stripe
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="payChannel" value="ecny" class="form-checkbox h-4 w-4">
+            <img src="https://aibochinese.com/media/pay-icons/ecny.png" alt="e-CNY" style="height:14px;max-width:52px;object-fit:contain;vertical-align:middle"> e-CNY（数字人民币）
+          </label>
+        </div>
+      </div>
+      <button onclick="savePayConfig()" class="btn btn-primary mt-4">保存支付设置</button>
+      <p class="text-xs text-gray-400 mt-2">密钥仅用于服务端签名/验签，不会回传前端明文。支付方式勾选后需点「保存支付设置」生效。</p>
+    </div>
+  </main>
+
+  <!-- 套餐编辑弹窗 -->
+  <div id="planModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:50">
+    <div class="card p-6 w-full max-w-md mx-4">
+      <h3 class="text-lg font-bold text-gray-800 mb-4" id="planModalTitle">新增套餐</h3>
+      <input type="hidden" id="planId">
+      <div class="space-y-3">
+        <div><label class="block text-sm text-gray-700 mb-1">名称</label><input id="planName" class="inp" placeholder="如：月度会员"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-sm text-gray-700 mb-1">时长（天）</label><input type="number" id="planDays" class="inp" min="1"></div>
+          <div><label class="block text-sm text-gray-700 mb-1">价格（美元）</label><input type="number" id="planPrice" class="inp" min="0" step="0.01"></div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="block text-sm text-gray-700 mb-1">客户上限（-1 不限）</label><input type="number" id="planMax" class="inp" value="-1"></div>
+          <div><label class="block text-sm text-gray-700 mb-1">排序</label><input type="number" id="planSort" class="inp" value="0"></div>
+        </div>
+        <div><label class="block text-sm text-gray-700 mb-1">上架</label><select id="planActive" class="inp"><option value="1">上架</option><option value="0">下架</option></select></div>
+      </div>
+      <div class="flex gap-2 justify-end mt-4">
+        <button onclick="closeModal()" class="btn" style="background:#e5e7eb">取消</button>
+        <button onclick="savePlan()" class="btn btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // 统一顶部导航：系统时间 + 移动端菜单 + 角色感知（与 /admin 一致）
+  (function () {
+    let navTz = 'Asia/Shanghai';
+    function fmtTz(tz) {
+      try {
+        const now = new Date();
+        const dtf = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const parts = dtf.formatToParts(now);
+        const get = (t) => Number(parts.find((x) => x.type === t).value);
+        const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+        const offset = Math.round((target - now.getTime()) / 3600000);
+        const names = { 'Asia/Shanghai': '北京时间', 'Asia/Tokyo': '东京时间', 'Asia/Hong_Kong': '香港时间', 'Asia/Taipei': '台北时间' };
+        return (names[tz] || tz) + ' (UTC' + (offset >= 0 ? '+' + offset : offset) + ')';
+      } catch (e) { return tz; }
+    }
+    function startClock() {
+      const update = () => {
+        try {
+          const now = new Date();
+          const s = now.toLocaleString('zh-CN', { timeZone: navTz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const tz = fmtTz(navTz);
+          const el = document.getElementById('systemTimeDisplay');
+          const mob = document.getElementById('mobileTimeDisplay');
+          if (el) el.textContent = s + '  ' + tz;
+          if (mob) mob.textContent = s + ' ' + tz;
+        } catch (e) { /* ignore */ }
+      };
+      update();
+      setInterval(update, 1000);
+    }
+    function setupMobileMenu() {
+      const btn = document.getElementById('mobile-menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      if (!btn || !menu) return;
+      const sync = () => {
+        const icon = btn.querySelector('i');
+        const hidden = menu.classList.contains('hidden');
+        btn.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+        if (icon) { icon.classList.toggle('fa-bars', hidden); icon.classList.toggle('fa-times', !hidden); }
+      };
+      btn.addEventListener('click', () => { menu.classList.toggle('hidden'); sync(); });
+      menu.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => { menu.classList.add('hidden'); sync(); }));
+      document.addEventListener('click', (e) => {
+        if (menu.classList.contains('hidden')) return;
+        if (btn.contains(e.target) || menu.contains(e.target)) return;
+        menu.classList.add('hidden'); sync();
+      });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.classList.contains('hidden')) { menu.classList.add('hidden'); sync(); } });
+      sync();
+    }
+    async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    }
+    (async function init() {
+      try {
+        const res = await fetch('/api/config');
+        const cfg = await res.json();
+        if (cfg && cfg.TIMEZONE) navTz = cfg.TIMEZONE;
+      } catch (e) { /* 保持默认时区 */ }
+      startClock();
+      setupMobileMenu();
+      applyRoleNav();
+    })();
+  })();
+  </script>
+
+  <script>
+    let plans = [];
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+      return res.json();
+    }
+    const fmt = c => '$' + (c / 100).toFixed(2);
+
+    async function loadPlans() {
+      // admin 视角看全部（含下架）——复用 /api/plans，服务端对 admin 返回全部
+      const r = await api('/api/plans?all=1');
+      plans = r.data || [];
+      document.getElementById('plansBody').innerHTML = plans.map(p => `
+        <tr class="border-t" style="border-color:#f3f4f6">
+          <td class="py-2 font-medium">${p.name}</td>
+          <td class="py-2">${p.durationDays} 天</td>
+          <td class="py-2">${fmt(p.priceCents)}</td>
+          <td class="py-2">${p.maxSubscriptions === -1 ? '不限' : p.maxSubscriptions}</td>
+          <td class="py-2"><span class="badge ${p.isActive ? 'badge-on' : 'badge-off'}">${p.isActive ? '上架' : '下架'}</span></td>
+          <td class="py-2 text-right">
+            <button onclick="showEditModal('${p.id}')" class="btn btn-primary mr-1" style="padding:0.25rem 0.5rem"><i class="fas fa-edit"></i></button>
+            <button onclick="delPlan('${p.id}','${p.name}')" class="btn" style="padding:0.25rem 0.5rem;background:#fee2e2;color:#dc2626"><i class="fas fa-trash"></i></button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="6" class="py-6 text-center text-gray-400">暂无套餐</td></tr>';
+    }
+
+    function showEditModal(id) {
+      const p = plans.find(x => x.id === id) || {};
+      document.getElementById('planModalTitle').textContent = id ? '编辑套餐' : '新增套餐';
+      document.getElementById('planId').value = p.id || '';
+      document.getElementById('planName').value = p.name || '';
+      document.getElementById('planDays').value = p.durationDays || 30;
+      document.getElementById('planPrice').value = p.priceCents != null ? p.priceCents / 100 : 19;
+      document.getElementById('planMax').value = p.maxSubscriptions != null ? p.maxSubscriptions : -1;
+      document.getElementById('planSort').value = p.sort || 0;
+      document.getElementById('planActive').value = p.isActive === false ? '0' : '1';
+      document.getElementById('planModal').style.display = 'flex';
+    }
+    async function savePlan() {
+      const body = {
+        id: document.getElementById('planId').value || undefined,
+        name: document.getElementById('planName').value.trim(),
+        durationDays: Number(document.getElementById('planDays').value),
+        priceCents: Math.round(Number(document.getElementById('planPrice').value) * 100),
+        maxSubscriptions: Number(document.getElementById('planMax').value),
+        sort: Number(document.getElementById('planSort').value),
+        isActive: document.getElementById('planActive').value === '1'
+      };
+      if (!body.name || !body.durationDays) { alert('请填写名称和时长'); return; }
+      const r = await api('/api/plans', { method: 'POST', body: JSON.stringify(body) });
+      if (!r.success) { alert(r.message || '保存失败'); return; }
+      closeModal(); loadPlans();
+    }
+    async function delPlan(id, name) {
+      if (!confirm(`确认删除套餐「${name}」？已购用户会员不受影响。`)) return;
+      await api('/api/plans/' + id, { method: 'DELETE' });
+      loadPlans();
+    }
+    function closeModal() { document.getElementById('planModal').style.display = 'none'; }
+
+    async function loadConfig() {
+      const r = await api('/api/config');
+      const cfg = r.data || r || {};
+      document.getElementById('freeQuota').value = cfg.FREE_QUOTA != null ? cfg.FREE_QUOTA : 3;
+      document.getElementById('allowReg').value = cfg.ALLOW_REGISTRATION === false ? '0' : '1';
+      document.getElementById('epayApiUrl').value = cfg.EPAY_API_URL || '';
+      document.getElementById('epayPid').value = cfg.EPAY_PID || '';
+      // 支付方式勾选（默认只勾 alipay/wxpay）
+      const channels = cfg.PAY_CHANNELS || ['alipay', 'wxpay'];
+      document.querySelectorAll('input[name="payChannel"]').forEach(cb => {
+        cb.checked = channels.includes(cb.value);
+      });
+    }
+    async function saveConfig() {
+      const r = await api('/api/config', { method: 'POST', body: JSON.stringify({
+        FREE_QUOTA: Number(document.getElementById('freeQuota').value),
+        ALLOW_REGISTRATION: document.getElementById('allowReg').value === '1'
+      })});
+      alert(r.success ? '已保存' : (r.message || '保存失败'));
+    }
+    async function savePayConfig() {
+      const body = {
+        EPAY_API_URL: document.getElementById('epayApiUrl').value.trim(),
+        EPAY_PID: document.getElementById('epayPid').value.trim(),
+        PAY_CHANNELS: [...document.querySelectorAll('input[name="payChannel"]:checked')].map(cb => cb.value)
+      };
+      const key = document.getElementById('epayKey').value.trim();
+      if (key) body.EPAY_KEY = key;
+      const r = await api('/api/config', { method: 'POST', body: JSON.stringify(body) });
+      alert(r.success ? '已保存' : (r.message || '保存失败'));
+      document.getElementById('epayKey').value = '';
+    }
+
+    loadPlans();
+    loadConfig();
+  </script>
+</body>
+</html>
