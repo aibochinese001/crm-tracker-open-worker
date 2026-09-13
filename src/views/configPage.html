@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>系统配置 - 客户管理系统</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  ${themeResources} <style>
+    
+    #toast-container {
+      position: fixed; top: 20px; right: 20px; z-index: 10000;
+      display: flex; flex-direction: column; gap: 8px; max-width: 380px;
+    }
+    .toast {
+      padding: 12px 36px 12px 16px; border-radius: 8px; position: relative;
+      color: white; font-weight: 500; transform: translateX(400px);
+      transition: all 0.3s ease-in-out; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .toast .toast-close {
+      position: absolute; top: 8px; right: 10px; cursor: pointer;
+      opacity: 0.7; font-size: 14px; line-height: 1;
+    }
+    .toast .toast-close:hover { opacity: 1; }
+    .toast.show { transform: translateX(0); }
+    .toast.success { background-color: #10b981; }
+    .toast.error { background-color: #ef4444; }
+    .toast.info { background-color: #3b82f6; }
+    .toast.warning { background-color: #f59e0b; }
+    html.dark .toast {
+      color: #f9fafb;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+    html.dark .toast.success { background-color: #059669; }
+    html.dark .toast.error { background-color: #dc2626; }
+    html.dark .toast.info { background-color: #2563eb; }
+    html.dark .toast.warning { background-color: #d97706; }
+    html.dark #floatingSaveBar { background-color: #1f2937; border-color: #374151; }
+    html.dark #floatingSaveBar span { color: #d1d5db; }
+    
+    .config-section { 
+      border: 1px solid #e5e7eb; 
+      border-radius: 8px; 
+      padding: 16px; 
+      margin-bottom: 24px; 
+    }
+    .config-section.active { 
+      background-color: #f8fafc; 
+      border-color: #6366f1; 
+    }
+    .config-section.inactive { 
+      background-color: #f9fafb; 
+      opacity: 0.7; 
+    }
+    /* === Config Page 暗黑模式修复 === */
+    html.dark .config-section {
+      border-color: #374151;
+    }
+    html.dark .config-section.active {
+      background-color: rgba(31, 41, 55, 0.5); /* #1f2937 with opacity */
+      border-color: #818cf8;
+    }
+    html.dark .config-section.inactive {
+      background-color: #111827;
+      opacity: 0.5;
+    }
+    html.dark .bg-indigo-50 {
+        background-color: rgba(55, 65, 81, 0.5) !important; /* 深灰色带透明 */
+        border-color: #4b5563 !important;
+    }
+    html.dark .text-indigo-700 {
+        color: #a5b4fc !important; /* 浅靛蓝 */
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div id="toast-container"></div>
+
+  <nav class="bg-white shadow-md relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center shrink-0">
+          <div class="flex items-center">
+            <i class="fas fa-calendar-check text-indigo-600 text-2xl mr-2"></i>
+            <span class="font-bold text-xl text-gray-800">客户管理系统</span>
+          </div>
+          <span id="systemTimeDisplay" class="ml-4 text-base text-indigo-600 font-normal hidden md:block pt-1"></span>
+        </div>
+          
+        <div class="hidden md:flex items-center space-x-4 ml-auto">
+          <a href="/admin/dashboard" id="nav-dashboard" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-chart-line mr-1"></i>仪表盘
+          </a>
+          <a href="/admin" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-list mr-1"></i>客户列表
+          </a>
+          <a href="/admin/notify-logs" id="nav-notify-logs" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-history mr-1"></i>通知历史
+          </a>
+          <a href="/admin/users" id="nav-users" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-users-cog mr-1"></i>管理后台
+          </a>
+          <a href="/me/notify" id="nav-notify-settings" class="text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-bell mr-1"></i>提醒设置
+          </a>
+          <a href="/me" id="nav-me" class="hidden text-gray-700 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-user-circle mr-1"></i>个人中心
+          </a>
+          <a href="/api/logout" class="text-gray-700 hover:text-red-600 border-b-2 border-transparent hover:border-red-300 px-3 py-2 rounded-md text-sm font-medium transition">
+            <i class="fas fa-sign-out-alt mr-1"></i>退出登录
+          </a>
+        </div>
+
+        <div class="flex items-center md:hidden ml-auto">
+          <button id="mobile-menu-btn" type="button" aria-expanded="false" aria-label="切换导航菜单" class="text-gray-600 hover:text-indigo-600 focus:outline-none p-2 rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors">
+            <i class="fas fa-bars text-xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-b border-gray-200 w-full">
+      <div class="px-4 pt-2 pb-4 space-y-2">
+        <div id="mobileTimeDisplay" class="px-3 py-2 text-xs text-indigo-600 text-right border-b border-gray-100 mb-2"></div>
+        <a href="/admin/dashboard" id="m-nav-dashboard" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-chart-line w-6 text-center mr-2"></i>仪表盘
+        </a>
+        <a href="/admin" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-list w-6 text-center mr-2"></i>客户列表
+        </a>
+        <a href="/admin/notify-logs" id="m-nav-notify-logs" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-history w-6 text-center mr-2"></i>通知历史
+        </a>
+        <a href="/admin/users" id="m-nav-users" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-users-cog w-6 text-center mr-2"></i>管理后台
+        </a>
+        <a href="/me/notify" id="m-nav-notify-settings" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-bell w-6 text-center mr-2"></i>提醒设置
+        </a>
+        <a href="/me" id="m-nav-me" class="hidden block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 active:bg-indigo-100 transition-colors">
+          <i class="fas fa-user-circle w-6 text-center mr-2"></i>个人中心
+        </a>
+        <a href="/api/logout" class="block px-3 py-3 rounded-md text-base font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 active:bg-red-100 transition-colors">
+          <i class="fas fa-sign-out-alt w-6 text-center mr-2"></i>退出登录
+        </a>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6">系统配置</h2>
+      <div id="defaultPasswordBanner" class="hidden mb-4 p-3 rounded-md border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        检测到仍可能使用默认管理员密码。请立即修改下方「管理员密码」并保存，避免公网被接管。
+      </div>
+      
+      <form id="configForm" class="space-y-8">
+        <div class="border-b border-gray-200 pb-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">管理员账户</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="adminUsername" class="block text-sm font-medium text-gray-700">用户名</label>
+              <input type="text" id="adminUsername" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            </div>
+            <div>
+              <label for="adminPassword" class="block text-sm font-medium text-gray-700">密码</label>
+              <input type="password" id="adminPassword" placeholder="如不修改密码，请留空" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+              <p class="mt-1 text-sm text-gray-500">留空表示不修改当前密码</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="border-b border-gray-200 pb-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">显示设置</h3>
+          
+          <div class="mb-6">
+            <label for="themeModeSelect" class="block text-sm font-medium text-gray-700 mb-1">主题模式</label>
+            <select id="themeModeSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white sm:text-sm">
+              <option value="light">🌞 浅色模式</option>
+              <option value="dark">🌙 暗黑模式</option>
+              <option value="system">🖥️ 跟随系统</option>
+            </select>
+            <p class="mt-1 text-sm text-gray-500">选择系统的外观风格</p>
+          </div>
+          
+          <div class="mb-6">
+            <label class="inline-flex items-center">
+              <input type="checkbox" id="showLunarGlobal" class="form-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500" checked>
+              <span class="ml-2 text-sm text-gray-700">在通知中显示农历日期</span>
+            </label>
+            <p class="mt-1 text-sm text-gray-500">控制是否在通知消息中包含农历日期信息</p>
+          </div>
+        </div>
+
+
+        <div class="border-b border-gray-200 pb-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">时区设置</h3>
+          <div class="mb-6">
+          <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">时区选择</label>
+          <select id="timezone" name="timezone" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white">
+            <optgroup label="🇨🇳 推荐">
+              <option value="Asia/Shanghai">中国标准时间（UTC+8）</option>
+            </optgroup>
+            <optgroup label="其它常用时区">
+              <option value="Asia/Hong_Kong">香港时间（UTC+8）</option>
+              <option value="Asia/Taipei">台北时间（UTC+8）</option>
+              <option value="Asia/Singapore">新加坡时间（UTC+8）</option>
+              <option value="Asia/Tokyo">日本时间（UTC+9）</option>
+              <option value="Asia/Seoul">韩国时间（UTC+9）</option>
+              <option value="UTC">世界标准时间（UTC+0）</option>
+              <option value="America/New_York">美国东部时间（UTC-5）</option>
+              <option value="America/Chicago">美国中部时间（UTC-6）</option>
+              <option value="America/Denver">美国山地时间（UTC-7）</option>
+              <option value="America/Los_Angeles">美国太平洋时间（UTC-8）</option>
+              <option value="Europe/London">英国时间（UTC+0）</option>
+              <option value="Europe/Paris">巴黎时间（UTC+1）</option>
+              <option value="Europe/Berlin">柏林时间（UTC+1）</option>
+              <option value="Europe/Moscow">莫斯科时间（UTC+3）</option>
+              <option value="Australia/Sydney">悉尼时间（UTC+10）</option>
+              <option value="Australia/Melbourne">墨尔本时间（UTC+10）</option>
+              <option value="Pacific/Auckland">奥克兰时间（UTC+12）</option>
+            </optgroup>
+          </select>
+            <p class="mt-1 text-sm text-gray-500">所有时间相关的判断（通知时段、剩余天数、日期显示）都按此时区计算。中国用户保持默认 <code>Asia/Shanghai</code> 即可。</p>
+          </div>
+        </div>
+
+        
+
+        <div class="flex justify-end">
+          <button type="submit" class="btn-primary text-white px-6 py-2 rounded-md text-sm font-medium">
+            <i class="fas fa-save mr-2"></i>保存配置
+          </button>
+        </div>
+      </form>
+
+      <!-- 备份与恢复（不在 configForm 内，避免触发表单提交） -->
+      <div class="config-section active mt-8" id="backupSection">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">
+          <i class="fas fa-file-export text-indigo-500 mr-2"></i>数据备份与恢复
+        </h3>
+        <p class="text-sm text-gray-500 mb-4">
+          导出系统配置、客户列表与提醒规则，便于换账号部署或升级迁移。
+          默认导出<strong>不含</strong> Bot Token / API Key 等密钥；需要时可勾选「包含敏感配置」。
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-download mr-1"></i>导出备份</h4>
+            <label class="inline-flex items-center text-sm text-gray-700 mb-3 cursor-pointer">
+              <input type="checkbox" id="exportIncludeSecrets" class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300">
+              <span class="ml-2">包含敏感配置（Token / 密码等）</span>
+            </label>
+            <p class="text-xs text-amber-600 mb-3">勾选后请妥善保管 JSON 文件，勿上传公开仓库。</p>
+            <button type="button" id="exportBackupBtn" class="btn-secondary text-white px-4 py-2 rounded-md text-sm font-medium">
+              <i class="fas fa-file-download mr-2"></i>下载备份 JSON
+            </button>
+          </div>
+
+          <div class="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-upload mr-1"></i>导入恢复</h4>
+            <input type="file" id="importBackupFile" accept="application/json,.json" class="block w-full text-sm text-gray-600 mb-3">
+            <div class="flex flex-col gap-2 mb-3">
+              <label class="inline-flex items-center text-sm text-gray-700 cursor-pointer">
+                <input type="radio" name="importMode" value="merge" class="form-radio h-4 w-4 text-indigo-600" checked>
+                <span class="ml-2">合并（按 ID 覆盖同名客户，保留其余）</span>
+              </label>
+              <label class="inline-flex items-center text-sm text-gray-700 cursor-pointer">
+                <input type="radio" name="importMode" value="replace" class="form-radio h-4 w-4 text-indigo-600">
+                <span class="ml-2">覆盖（删除现有客户后整包导入）</span>
+              </label>
+              <label class="inline-flex items-center text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" id="importIncludeSecrets" class="form-checkbox h-4 w-4 text-indigo-600 rounded border-gray-300">
+                <span class="ml-2">应用备份中的敏感配置（仅当备份含密钥时有效）</span>
+              </label>
+            </div>
+            <button type="button" id="importBackupBtn" class="btn-warning text-white px-4 py-2 rounded-md text-sm font-medium">
+              <i class="fas fa-file-import mr-2"></i>从文件恢复
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 悬浮保存栏 -->
+  <div id="floatingSaveBar" class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg py-3 px-6 flex justify-between items-center z-50 transform translate-y-full transition-transform duration-300" style="display:none;">
+    <span class="text-sm text-gray-600"><i class="fas fa-exclamation-circle text-yellow-500 mr-2"></i>有未保存的更改</span>
+    <button type="button" onclick="document.getElementById('configForm').requestSubmit()" class="btn-primary text-white px-5 py-2 rounded-md text-sm font-medium">
+      <i class="fas fa-save mr-2"></i>保存配置
+    </button>
+  </div>
+
+  <script>
+    // 统一 API 请求封装：401 自动跳转登录页
+    async function apiFetch(url, options) {
+      const response = await fetch(url, options);
+      if (response.status === 401) {
+        showToast('登录已过期，正在跳转登录页...', 'warning');
+        setTimeout(() => { window.location.href = '/'; }, 1000);
+        throw new Error('AUTH_EXPIRED');
+      }
+      return response;
+    }
+
+    function showToast(message, type = 'success', duration) {
+      if (!duration) duration = type === 'error' ? 6000 : type === 'warning' ? 4500 : 3000;
+      const container = document.getElementById('toast-container');
+      while (container.children.length >= 5) container.removeChild(container.firstChild);
+
+      const toast = document.createElement('div');
+      toast.className = 'toast ' + type;
+      
+      const icon = type === 'success' ? 'check-circle' :
+                   type === 'error' ? 'exclamation-circle' :
+                   type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+      
+      toast.innerHTML = '<div class="flex items-center"><i class="fas fa-' + icon + ' mr-2"></i><span class="toast-msg"></span></div><span class="toast-close" onclick="this.parentElement.remove()">&times;</span>';
+      toast.querySelector('.toast-msg').textContent = message;
+      
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 50);
+      const timer = setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => { if (container.contains(toast)) container.removeChild(toast); }, 300);
+      }, duration);
+      toast.querySelector('.toast-close').addEventListener('click', () => clearTimeout(timer));
+    }
+
+    // 记录用户是否点击了“清空”某个密钥字段；保存时会提交给后端处理
+    const CLEAR_SECRET_FIELDS = new Set();
+
+    function setSecretStatus(key, text) {
+      const el = document.getElementById(key + 'Status');
+      if (!el) return;
+      el.textContent = text;
+    }
+
+    function updateAllSecretStatus() {
+      const cfg = window.SECRET_CONFIGURED || {};
+      setSecretStatus('TG_BOT_TOKEN', cfg.TG_BOT_TOKEN ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('NOTIFYX_API_KEY', cfg.NOTIFYX_API_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WEBHOOK_URL', cfg.WEBHOOK_URL ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WEBHOOK_HEADERS', cfg.WEBHOOK_HEADERS ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('WECHATBOT_WEBHOOK', cfg.WECHATBOT_WEBHOOK ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('RESEND_API_KEY', cfg.RESEND_API_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('BARK_DEVICE_KEY', cfg.BARK_DEVICE_KEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('THIRD_PARTY_API_TOKEN', cfg.THIRD_PARTY_API_TOKEN ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('GOTIFY_APP_TOKEN', cfg.GOTIFY_APP_TOKEN ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('SERVERCHAN_SENDKEY', cfg.SERVERCHAN_SENDKEY ? '已配置（已隐藏）' : '未配置');
+      setSecretStatus('PUSHPLUS_TOKEN', cfg.PUSHPLUS_TOKEN ? '已配置（已隐藏）' : '未配置');
+    }
+
+    function wireSecretInput(inputId, key) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      input.addEventListener('input', () => {
+        const value = input.value.trim();
+        if (value.length > 0) {
+          // 用户输入了新值，视为将被更新
+          CLEAR_SECRET_FIELDS.delete(key);
+          setSecretStatus(key, '将更新（保存后生效）');
+        } else {
+          // 空表示“不修改”（默认）
+          const cfg = window.SECRET_CONFIGURED || {};
+          setSecretStatus(key, cfg[key] ? '已配置（已隐藏）' : '未配置');
+        }
+      });
+    }
+
+    function wireClearSecretButton(buttonId, inputId, key) {
+      const btn = document.getElementById(buttonId);
+      const input = document.getElementById(inputId);
+      if (!btn || !input) return;
+      btn.addEventListener('click', () => {
+        input.value = '';
+        CLEAR_SECRET_FIELDS.add(key);
+        setSecretStatus(key, '将清空（保存后生效）');
+        showToast('已标记清空：' + key + '（点击“保存配置”后生效）', 'warning', 4500);
+      });
+    }
+
+    async function loadConfig() {
+      try {
+        const response = await apiFetch('/api/config');
+        const config = await response.json();
+
+        // === 安全策略 ===
+        // 1) 所有 token/密钥类字段，后端不会下发真实值；这里只显示“已配置(隐藏)”状态。
+        // 2) 不填写 token/密钥字段并保存时，后端会保持原值不变。
+        // 3) 如需清空，请点对应的“清空”按钮（会在保存时生效）。
+
+        document.getElementById('adminUsername').value = config.ADMIN_USERNAME || '';
+        const _banner = document.getElementById('defaultPasswordBanner');
+        if (_banner) {
+          // 无法读取密码；用户名仍为 admin 时提示改密（默认部署风险）
+          _banner.classList.toggle('hidden', (config.ADMIN_USERNAME || 'admin') !== 'admin');
+        }
+        document.getElementById('themeModeSelect').value = config.THEME_MODE || 'system';  // 回显主题设置
+
+        // 非敏感字段正常回显
+        document.getElementById('tgChatId').value = config.TG_CHAT_ID || '';
+        const tgTopicEl = document.getElementById('tgTopicId');
+        if (tgTopicEl) tgTopicEl.value = config.TG_TOPIC_ID || '';
+        if (document.getElementById('webhookMethod')) document.getElementById('webhookMethod').value = config.WEBHOOK_METHOD || 'POST';
+        if (document.getElementById('webhookTemplate')) document.getElementById('webhookTemplate').value = config.WEBHOOK_TEMPLATE || '';
+        if (document.getElementById('wechatbotMsgType')) document.getElementById('wechatbotMsgType').value = config.WECHATBOT_MSG_TYPE || 'text';
+        if (document.getElementById('wechatbotAtMobiles')) document.getElementById('wechatbotAtMobiles').value = config.WECHATBOT_AT_MOBILES || '';
+        document.getElementById('wechatbotAtAll').checked = config.WECHATBOT_AT_ALL === 'true';
+        if (document.getElementById('emailFrom')) document.getElementById('emailFrom').value = config.EMAIL_FROM || '';
+        if (document.getElementById('emailFromName')) document.getElementById('emailFromName').value = config.EMAIL_FROM_NAME || '客户提醒系统';
+        if (document.getElementById('emailTo')) document.getElementById('emailTo').value = config.EMAIL_TO || '';
+        if (document.getElementById('barkServer')) document.getElementById('barkServer').value = config.BARK_SERVER || 'https://api.day.app';
+        document.getElementById('barkIsArchive').checked = config.BARK_IS_ARCHIVE === 'true';
+        if (document.getElementById('gotifyServerUrl')) document.getElementById('gotifyServerUrl').value = config.GOTIFY_SERVER_URL || '';
+        if (document.getElementById('ntfyServer')) document.getElementById('ntfyServer').value = config.NTFY_SERVER || 'https://ntfy.sh';
+        if (document.getElementById('ntfyTopic')) document.getElementById('ntfyTopic').value = config.NTFY_TOPIC || '';
+        if (document.getElementById('pushplusTopic')) document.getElementById('pushplusTopic').value = config.PUSHPLUS_TOPIC || '';
+        if (document.getElementById('pushplusChannel')) document.getElementById('pushplusChannel').value = config.PUSHPLUS_CHANNEL || '';
+
+        // 敏感字段：清空输入框（不回显真实值）
+        if (document.getElementById('thirdPartyToken')) document.getElementById('thirdPartyToken').value = '';
+
+        window.SECRET_CONFIGURED = {
+          TG_BOT_TOKEN: config.TG_BOT_TOKEN_CONFIGURED === true,
+          NOTIFYX_API_KEY: config.NOTIFYX_API_KEY_CONFIGURED === true,
+          WEBHOOK_URL: config.WEBHOOK_URL_CONFIGURED === true,
+          WEBHOOK_HEADERS: config.WEBHOOK_HEADERS_CONFIGURED === true,
+          WECHATBOT_WEBHOOK: config.WECHATBOT_WEBHOOK_CONFIGURED === true,
+          RESEND_API_KEY: config.RESEND_API_KEY_CONFIGURED === true,
+          BARK_DEVICE_KEY: config.BARK_DEVICE_KEY_CONFIGURED === true,
+          THIRD_PARTY_API_TOKEN: config.THIRD_PARTY_API_TOKEN_CONFIGURED === true,
+          GOTIFY_APP_TOKEN: config.GOTIFY_APP_TOKEN_CONFIGURED === true,
+          NTFY_TOKEN: config.NTFY_TOKEN_CONFIGURED === true,
+          SERVERCHAN_SENDKEY: config.SERVERCHAN_SENDKEY_CONFIGURED === true,
+          PUSHPLUS_TOKEN: config.PUSHPLUS_TOKEN_CONFIGURED === true
+        };
+
+        updateAllSecretStatus();
+        document.getElementById('debugLogs').checked = config.DEBUG_LOGS === true;
+        document.getElementById('paymentHistoryLimit').value = Number(config.PAYMENT_HISTORY_LIMIT) || 100;
+        const notificationHoursInput = document.getElementById('notificationHours');
+        if (notificationHoursInput) {
+          // 将通知小时数组格式化为逗号分隔的字符串，便于管理员查看与编辑
+          const hours = Array.isArray(config.NOTIFICATION_HOURS) ? config.NOTIFICATION_HOURS : [];
+          notificationHoursInput.value = hours.join(', ');
+        }
+
+        // 加载农历显示设置
+        document.getElementById('showLunarGlobal').checked = config.SHOW_LUNAR === true;
+
+        // 动态生成时区选项，并设置保存的值
+        generateTimezoneOptions(config.TIMEZONE || 'Asia/Shanghai');
+
+        // 配置加载完成后再刷新「是否可发送」预览（避免空输入被当成全天）
+        if (typeof window.__refreshNotificationHoursPreview === 'function') {
+          window.__refreshNotificationHoursPreview();
+        }
+      } catch (error) {
+        console.error('加载配置失败:', error);
+        showToast('加载配置失败，请刷新页面重试', 'error');
+        // 禁用表单防止误提交覆盖数据
+        const form = document.getElementById('configForm');
+        Array.from(form.elements).forEach(el => { el.disabled = true; });
+      }
+    }
+    
+    // 动态生成时区选项（保持与静态 HTML 一致：推荐分组在最前）
+    function generateTimezoneOptions(selectedTimezone = 'Asia/Shanghai') {
+      const timezoneSelect = document.getElementById('timezone');
+      const fallbackTimezone = 'Asia/Shanghai';
+
+      const recommended = [
+        { value: 'Asia/Shanghai', name: '中国标准时间', offset: '+8' }
+      ];
+      const others = [
+        { value: 'Asia/Hong_Kong', name: '香港时间', offset: '+8' },
+        { value: 'Asia/Taipei', name: '台北时间', offset: '+8' },
+        { value: 'Asia/Singapore', name: '新加坡时间', offset: '+8' },
+        { value: 'Asia/Tokyo', name: '日本时间', offset: '+9' },
+        { value: 'Asia/Seoul', name: '韩国时间', offset: '+9' },
+        { value: 'UTC', name: '世界标准时间', offset: '+0' },
+        { value: 'America/New_York', name: '美国东部时间', offset: '-5' },
+        { value: 'America/Chicago', name: '美国中部时间', offset: '-6' },
+        { value: 'America/Denver', name: '美国山地时间', offset: '-7' },
+        { value: 'America/Los_Angeles', name: '美国太平洋时间', offset: '-8' },
+        { value: 'Europe/London', name: '英国时间', offset: '+0' },
+        { value: 'Europe/Paris', name: '巴黎时间', offset: '+1' },
+        { value: 'Europe/Berlin', name: '柏林时间', offset: '+1' },
+        { value: 'Europe/Moscow', name: '莫斯科时间', offset: '+3' },
+        { value: 'Australia/Sydney', name: '悉尼时间', offset: '+10' },
+        { value: 'Australia/Melbourne', name: '墨尔本时间', offset: '+10' },
+        { value: 'Pacific/Auckland', name: '奥克兰时间', offset: '+12' }
+      ];
+      const allTimezones = [...recommended, ...others];
+      
+      // 清空现有选项
+      timezoneSelect.innerHTML = '';
+
+      // 推荐分组
+      const recGroup = document.createElement('optgroup');
+      recGroup.label = '🇨🇳 推荐';
+      recommended.forEach(tz => {
+        const o = document.createElement('option');
+        o.value = tz.value;
+        o.textContent = tz.name + '（UTC' + tz.offset + '）';
+        recGroup.appendChild(o);
+      });
+      timezoneSelect.appendChild(recGroup);
+
+      // 其它常用时区分组
+      const otherGroup = document.createElement('optgroup');
+      otherGroup.label = '其它常用时区';
+      others.forEach(tz => {
+        const o = document.createElement('option');
+        o.value = tz.value;
+        o.textContent = tz.name + '（UTC' + tz.offset + '）';
+        otherGroup.appendChild(o);
+      });
+      timezoneSelect.appendChild(otherGroup);
+
+      const timezoneExists = allTimezones.some(tz => tz.value === selectedTimezone);
+      timezoneSelect.value = timezoneExists ? selectedTimezone : fallbackTimezone;
+
+      if (!timezoneExists) {
+        showToast('检测到未知时区配置，已回退为 Asia/Shanghai，请重新确认后保存', 'warning', 4500);
+      }
+    }
+    
+    
+    document.getElementById('configForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const config = {
+        ADMIN_USERNAME: document.getElementById('adminUsername').value.trim(),
+        THEME_MODE: document.getElementById('themeModeSelect').value,      // 保存主题设置
+
+        // 通知渠道配置已迁移至「提醒设置」页（/me/notify，每用户隔离），此处不再收集
+        THIRD_PARTY_API_TOKEN: (document.getElementById('thirdPartyToken') && document.getElementById('thirdPartyToken').value.trim()) || '',
+
+        // 非敏感字段正常提交
+        SHOW_LUNAR: document.getElementById('showLunarGlobal').checked,
+        TIMEZONE: document.getElementById('timezone').value.trim(),
+
+        // 标记“清空哪些密钥字段”
+        CLEAR_SECRET_FIELDS: Array.from(CLEAR_SECRET_FIELDS),
+
+        DEBUG_LOGS: document.getElementById('debugLogs').checked === true,
+        PAYMENT_HISTORY_LIMIT: (() => {
+          const raw = Number(document.getElementById('paymentHistoryLimit').value);
+          if (!Number.isFinite(raw)) return 100;
+          return Math.min(1000, Math.max(10, Math.floor(raw)));
+        })(),
+        // 前端先行整理通知小时列表，后端仍会再次校验
+        NOTIFICATION_HOURS: (() => {
+          const raw = document.getElementById('notificationHours').value.trim();
+          if (!raw) {
+            return [];
+          }
+          return raw
+            .split(/[,，\s]+/)
+            .map(item => item.trim())
+            .filter(item => item.length > 0);
+        })()
+      };
+
+      const passwordField = document.getElementById('adminPassword');
+      if (passwordField.value.trim()) {
+        config.ADMIN_PASSWORD = passwordField.value.trim();
+      }
+
+      const submitButton = e.target.querySelector('button[type="submit"]');
+      const originalContent = submitButton.innerHTML;
+      submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>保存中...';
+      submitButton.disabled = true;
+
+      try {
+        const response = await apiFetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(config)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('配置保存成功', 'success');
+          if (window.updateAppTheme) {    // 保存成功后立即应用主题，无需刷新
+            window.updateAppTheme(config.THEME_MODE);
+          }
+          passwordField.value = '';
+          
+          // 前端始终显示浏览器本地时区
+          globalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+          showSystemTime();
+          
+          // 标记时区已更新，供其他页面检测
+          localStorage.setItem('timezoneUpdated', Date.now().toString());
+          
+          // 如果当前在客户列表页面，则自动刷新页面以更新时区显示
+          if (window.location.pathname === '/admin') {
+            window.location.reload();
+          }
+        } else {
+          showToast('配置保存失败: ' + (result.message || '未知错误'), 'error');
+        }
+      } catch (error) {
+        console.error('保存配置失败:', error);
+        showToast('保存配置失败，请稍后再试', 'error');
+      } finally {
+        submitButton.innerHTML = originalContent;
+        submitButton.disabled = false;
+      }
+    });
+    
+
+
+    document.getElementById('generateThirdPartyToken').addEventListener('click', () => {
+      try {
+        // 生成 32 位随机令牌，避免出现特殊字符，方便写入 URL
+        const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const buffer = new Uint8Array(32);
+        window.crypto.getRandomValues(buffer);
+        const token = Array.from(buffer).map(v => charset[v % charset.length]).join('');
+        const input = document.getElementById('thirdPartyToken');
+        input.value = token;
+        input.dispatchEvent(new Event('input'));
+        showToast('已生成新的第三方 API 令牌，请保存配置后生效', 'info');
+      } catch (error) {
+        console.error('生成令牌失败:', error);
+        showToast('生成令牌失败，请手动输入', 'error');
+      }
+    });
+
+    window.addEventListener('load', () => {
+      // 绑定敏感字段输入/清空按钮
+      wireSecretInput('thirdPartyToken', 'THIRD_PARTY_API_TOKEN');
+      if (document.getElementById('ntfyToken')) wireSecretInput('ntfyToken', 'NTFY_TOKEN');
+
+      wireClearSecretButton('clearThirdPartyToken', 'thirdPartyToken', 'THIRD_PARTY_API_TOKEN');
+      if (document.getElementById('clearNtfyToken')) wireClearSecretButton('clearNtfyToken', 'ntfyToken', 'NTFY_TOKEN');
+
+      loadConfig();
+
+      // 表单变更检测：显示悬浮保存栏 + beforeunload 提示
+      let configDirty = false;
+      const form = document.getElementById('configForm');
+      const floatingBar = document.getElementById('floatingSaveBar');
+
+      form.addEventListener('input', () => {
+        if (!configDirty) {
+          configDirty = true;
+          floatingBar.style.display = '';
+          requestAnimationFrame(() => floatingBar.style.transform = 'translateY(0)');
+        }
+      });
+      form.addEventListener('change', () => {
+        if (!configDirty) {
+          configDirty = true;
+          floatingBar.style.display = '';
+          requestAnimationFrame(() => floatingBar.style.transform = 'translateY(0)');
+        }
+      });
+
+      // 保存成功后隐藏悬浮栏
+      form.addEventListener('submit', () => {
+        setTimeout(() => {
+          configDirty = false;
+          floatingBar.style.transform = 'translateY(100%)';
+          setTimeout(() => { floatingBar.style.display = 'none'; }, 300);
+        }, 500);
+      });
+
+      window.addEventListener('beforeunload', (e) => {
+        if (configDirty) { e.preventDefault(); e.returnValue = ''; }
+      });
+    });
+    
+    // 前端展示时区（固定使用浏览器本地时区）
+    let globalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    let systemTimeTimer = null;
+    let timezoneCheckTimer = null;
+    
+    // 实时显示系统时间和时区
+    async function showSystemTime() {
+      try {
+        // 获取后台配置的时区
+        const response = await apiFetch('/api/config');
+        const config = await response.json();
+        globalTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        
+        // 格式化当前时间
+        function formatTime(dt, tz) {
+          return dt.toLocaleString('zh-CN', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        function formatTimezoneDisplay(tz) {
+          try {
+            // 使用更准确的时区偏移计算方法
+            const now = new Date();
+            const dtf = new Intl.DateTimeFormat('en-US', {
+              timeZone: tz,
+              hour12: false,
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            const parts = dtf.formatToParts(now);
+            const get = type => Number(parts.find(x => x.type === type).value);
+            const target = Date.UTC(get('year'), get('month') - 1, get('day'), get('hour'), get('minute'), get('second'));
+            const utc = now.getTime();
+            const offset = Math.round((target - utc) / (1000 * 60 * 60));
+            
+            // 时区中文名称映射
+            const timezoneNames = {
+              'UTC': '世界标准时间',
+              'Asia/Shanghai': '中国标准时间',
+              'Asia/Hong_Kong': '香港时间',
+              'Asia/Taipei': '台北时间',
+              'Asia/Singapore': '新加坡时间',
+              'Asia/Tokyo': '日本时间',
+              'Asia/Seoul': '韩国时间',
+              'America/New_York': '美国东部时间',
+              'America/Los_Angeles': '美国太平洋时间',
+              'America/Chicago': '美国中部时间',
+              'America/Denver': '美国山地时间',
+              'Europe/London': '英国时间',
+              'Europe/Paris': '巴黎时间',
+              'Europe/Berlin': '柏林时间',
+              'Europe/Moscow': '莫斯科时间',
+              'Australia/Sydney': '悉尼时间',
+              'Australia/Melbourne': '墨尔本时间',
+              'Pacific/Auckland': '奥克兰时间'
+            };
+            
+            const offsetStr = offset >= 0 ? '+' + offset : offset;
+            const timezoneName = timezoneNames[tz] || tz;
+            return timezoneName + ' (UTC' + offsetStr + ')';
+          } catch (error) {
+            console.error('格式化时区显示失败:', error);
+            return tz;
+          }
+        }
+        function update() {
+          const now = new Date();
+          const timeStr = formatTime(now, globalTimezone);
+          const tzStr = formatTimezoneDisplay(globalTimezone);
+          const el = document.getElementById('systemTimeDisplay');
+          if (el) {
+            el.textContent = timeStr + '  ' + tzStr;
+          }
+          // 更新移动端显示 (新增)
+          const mobileEl = document.getElementById('mobileTimeDisplay');
+          if (mobileEl) {
+            mobileEl.textContent = timeStr + ' ' + tzStr;
+          }
+        }
+        update();
+
+        if (systemTimeTimer) {
+          clearInterval(systemTimeTimer);
+        }
+        systemTimeTimer = setInterval(update, 1000);
+
+        if (timezoneCheckTimer) {
+          clearInterval(timezoneCheckTimer);
+        }
+        timezoneCheckTimer = setInterval(async () => {
+          try {
+            const response = await apiFetch('/api/config');
+            await response.json();
+            const newTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+            if (globalTimezone !== newTimezone) {
+              globalTimezone = newTimezone;
+              update();
+            }
+          } catch (error) {
+            console.error('检查时区更新失败:', error);
+          }
+        }, 30000);
+      } catch (e) {
+        // 出错时显示本地时间
+        const el = document.getElementById('systemTimeDisplay');
+        if (el) {
+          el.textContent = new Date().toLocaleString();
+        }
+      }
+    }
+    showSystemTime();
+    // 角色感知导航：普通用户隐藏「管理后台」，显示「个人中心」（与 /admin 一致）
+    (async function applyRoleNav() {
+      try {
+        const res = await fetch('/api/me');
+        const r = await res.json();
+        const role = r && r.data && r.data.role;
+        if (role !== 'admin') {
+          ['nav-users', 'm-nav-users'].forEach((id) => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+          ['nav-me', 'm-nav-me'].forEach((id) => { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+        }
+      } catch (e) { /* 角色获取失败保持默认（admin 视图） */ }
+    })();
+    // --- 新增：移动端菜单控制脚本 ---
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (mobileMenuBtn && mobileMenu) {
+      const syncMobileMenuState = () => {
+        const icon = mobileMenuBtn.querySelector('i');
+        const isHidden = mobileMenu.classList.contains('hidden');
+        mobileMenuBtn.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+        if (icon) {
+          icon.classList.toggle('fa-bars', isHidden);
+          icon.classList.toggle('fa-times', !isHidden);
+        }
+      };
+
+      mobileMenuBtn.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+        syncMobileMenuState();
+      });
+      
+      mobileMenu.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          mobileMenu.classList.add('hidden');
+          syncMobileMenuState();
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        if (mobileMenu.classList.contains('hidden')) return;
+        if (!mobileMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
+          mobileMenu.classList.add('hidden');
+          syncMobileMenuState();
+        }
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !mobileMenu.classList.contains('hidden')) {
+          mobileMenu.classList.add('hidden');
+          syncMobileMenuState();
+        }
+      });
+
+      syncMobileMenuState();
+    }
+
+    // ───────────────────────────────────────────────────────
+    // 通知小时实时预览（与调度器同一套规则）
+    // 注意：必须在 loadConfig 写入输入框之后再刷新，否则会误显示「空=全天」
+    // ───────────────────────────────────────────────────────
+    (function () {
+      const tzSelect = document.getElementById('timezone');
+      const hoursInput = document.getElementById('notificationHours');
+      const labelInline = document.getElementById('tzLabelInline');
+      const preview = document.getElementById('tzWindowPreview');
+      if (!tzSelect || !hoursInput || !preview || !labelInline) return;
+
+      const TZ_LABELS = {
+        'Asia/Shanghai': '北京时间',
+        'Asia/Hong_Kong': '香港时间',
+        'Asia/Taipei': '台北时间',
+        'Asia/Tokyo': '东京时间',
+        'Asia/Singapore': '新加坡时间',
+        'UTC': '世界协调时(UTC)',
+        'America/New_York': '纽约时间',
+        'America/Los_Angeles': '洛杉矶时间',
+        'Europe/London': '伦敦时间'
+      };
+
+      function friendlyTz(tz) {
+        return TZ_LABELS[tz] || tz;
+      }
+
+      function currentTzHour(tz) {
+        try {
+          const fmt = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit'
+          });
+          const parts = fmt.formatToParts(new Date());
+          let h = parts.find(p => p.type === 'hour')?.value || '00';
+          const m = parts.find(p => p.type === 'minute')?.value || '00';
+          if (h === '24') h = '00';
+          return { hh: String(h).padStart(2, '0'), mm: String(m).padStart(2, '0') };
+        } catch {
+          return { hh: '??', mm: '??' };
+        }
+      }
+
+      function parseHours(text) {
+        if (!text) return [];
+        return String(text).split(/[,，\s]+/).map(s => s.trim()).filter(Boolean).map(s => {
+          if (s === '*' || s.toUpperCase() === 'ALL') return '*';
+          const n = Number(s);
+          if (!isNaN(n)) return String(Math.max(0, Math.min(23, Math.floor(n)))).padStart(2, '0');
+          return s;
+        });
+      }
+
+      function update() {
+        const tz = tzSelect.value || 'UTC';
+        const tzName = friendlyTz(tz);
+        labelInline.textContent = '（按' + tzName + '）';
+        const { hh, mm } = currentTzHour(tz);
+        const hours = parseHours(hoursInput.value);
+        const allowAll = hours.length === 0 || hours.includes('*');
+        const inWindow = allowAll || hours.includes(hh);
+
+        let statusHtml;
+        if (allowAll) {
+          statusHtml = '<span class="text-green-700 font-medium">✓ 当前会允许发送</span>'
+            + '<div class="text-xs text-gray-600 mt-1">未限制小时（留空或 *）= 每个整点检查时都可以发。</div>';
+        } else if (inWindow) {
+          statusHtml = '<span class="text-green-700 font-medium">✓ 当前整点在允许列表内，会发送</span>'
+            + '<div class="text-xs text-gray-600 mt-1">允许的小时：<b>' + hours.join('、') + '</b>；现在是 <b>' + hh + ':' + mm + '</b>（' + tzName + '）。</div>';
+        } else {
+          statusHtml = '<span class="text-amber-700 font-medium">✗ 当前不会发送</span>'
+            + '<div class="text-xs text-gray-600 mt-1">你只允许在 <b>' + hours.join('、') + '</b> 点发送；现在是 <b>' + hh + ':' + mm + '</b>（' + tzName + '）。'
+            + '定时任务仍会每小时跑一次，但不推送，任务历史会记「不在允许发送的小时」——这是正常跳过。</div>';
+        }
+
+        preview.innerHTML =
+          '<div class="text-gray-800">' + statusHtml + '</div>'
+          + '<div class="text-xs text-gray-500 mt-2">时区代码：' + tz + ' · 预览仅反映输入框内容，保存后调度器才用服务器上的值。</div>';
+      }
+
+      window.__refreshNotificationHoursPreview = update;
+
+      tzSelect.addEventListener('change', update);
+      hoursInput.addEventListener('input', update);
+      hoursInput.addEventListener('change', update);
+      setTimeout(update, 200);
+      setInterval(update, 30000);
+    })();
+
+    // ───────────────────────────────────────────────────────
+    // 备份导出 / 导入恢复
+    // ───────────────────────────────────────────────────────
+    (function () {
+      const exportBtn = document.getElementById('exportBackupBtn');
+      const importBtn = document.getElementById('importBackupBtn');
+      if (!exportBtn || !importBtn) return;
+
+      exportBtn.addEventListener('click', async () => {
+        const includeSecrets = document.getElementById('exportIncludeSecrets').checked;
+        if (includeSecrets && !confirm('将导出包含 Token / 密钥的完整备份，请确认文件会安全保存。继续？')) {
+          return;
+        }
+        const original = exportBtn.innerHTML;
+        exportBtn.disabled = true;
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>导出中...';
+        try {
+          const url = '/api/backup?includeSecrets=' + (includeSecrets ? '1' : '0');
+          const res = await apiFetch(url);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || ('HTTP ' + res.status));
+          }
+          const blob = await res.blob();
+          const a = document.createElement('a');
+          const objectUrl = URL.createObjectURL(blob);
+          a.href = objectUrl;
+          a.download = 'substracker-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(objectUrl);
+          showToast('备份已下载', 'success');
+        } catch (e) {
+          if (e && e.message === 'AUTH_EXPIRED') return;
+          console.error(e);
+          showToast('导出失败: ' + (e.message || e), 'error');
+        } finally {
+          exportBtn.disabled = false;
+          exportBtn.innerHTML = original;
+        }
+      });
+
+      importBtn.addEventListener('click', async () => {
+        const fileInput = document.getElementById('importBackupFile');
+        const file = fileInput && fileInput.files && fileInput.files[0];
+        if (!file) {
+          showToast('请先选择备份 JSON 文件', 'warning');
+          return;
+        }
+        const modeEl = document.querySelector('input[name="importMode"]:checked');
+        const mode = modeEl ? modeEl.value : 'merge';
+        const includeSecrets = document.getElementById('importIncludeSecrets').checked;
+
+        if (mode === 'replace' && !confirm('覆盖模式会删除当前全部客户后再导入，且不可撤销。确定继续？')) {
+          return;
+        }
+        if (!confirm('确认从备份恢复？建议先导出一份当前数据作为回滚。')) {
+          return;
+        }
+
+        const original = importBtn.innerHTML;
+        importBtn.disabled = true;
+        importBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>恢复中...';
+        try {
+          const text = await file.text();
+          let backup;
+          try {
+            backup = JSON.parse(text);
+          } catch {
+            throw new Error('文件不是合法 JSON');
+          }
+          const res = await apiFetch('/api/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ backup, mode, includeSecrets })
+          });
+          const result = await res.json().catch(() => ({}));
+          if (!res.ok || !result.success) {
+            throw new Error(result.message || ('HTTP ' + res.status));
+          }
+          const stats = result.stats || {};
+          showToast(
+            '恢复成功：客户 ' + (stats.subscriptions || 0) +
+            ' 条，规则 ' + (stats.reminderRules || 0) + ' 条',
+            'success',
+            5000
+          );
+          // 重新加载配置表单
+          if (typeof loadConfig === 'function') {
+            try { loadConfig(); } catch (_) { /* ignore */ }
+          } else {
+            setTimeout(function () { location.reload(); }, 800);
+          }
+        } catch (e) {
+          if (e && e.message === 'AUTH_EXPIRED') return;
+          console.error(e);
+          showToast('恢复失败: ' + (e.message || e), 'error', 6000);
+        } finally {
+          importBtn.disabled = false;
+          importBtn.innerHTML = original;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
