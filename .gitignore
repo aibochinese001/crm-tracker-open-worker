@@ -1,0 +1,32 @@
+node_modules/
+.wrangler/
+.codeflicker/
+dist/
+coverage/
+.DS_Store
+
+# 本地调研 / 审计草稿 / 内部文档，不入库
+优化文档/
+CHANGELOG-TEST.md
+docs/
+FULL_AUDIT_REPORT.md
+*_AUDIT_REPORT.md
+*_AUDIT*.md
+
+# AI 工具本地配置
+.codex/
+.agents/
+.claude/
+
+# 环境变量与密钥（严禁提交）
+.env
+.env.*
+.dev.vars
+*.pem
+*.key
+
+# 编辑器 / 系统
+.idea/
+.vscode/
+*.swp
+*~
