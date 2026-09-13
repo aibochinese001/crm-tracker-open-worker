@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Workers
+    runs-on: ubuntu-latest
+    # 需要在 GitHub 仓库 Settings → Secrets 配置：
+    #   CLOUDFLARE_API_TOKEN  (Workers 编辑 + KV 编辑权限)
+    #   CLOUDFLARE_ACCOUNT_ID (可选；Token 可锁定到单 account)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint + Test (deploy 前最后一道防线)
+        run: |
+          npm run lint
+          npm test
+
+      - name: Deploy to Cloudflare Workers
+        run: npm run deploy:safe
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
